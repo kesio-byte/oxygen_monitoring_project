@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Dashboard{% endblock %}
+
+{% block content %}
+  <h1 class="text-2xl font-bold mb-4">Weekly Dashboard</h1>
+
+  <p>Average Oxygen Purity: {{ avg_purity|default:"No data" }}</p>
+  <p>Average Pressure: {{ avg_pressure|default:"No data" }}</p>
+
+  <h2 class="mt-6 font-semibold">Entries this week:</h2>
+  <ul>
+    {% for entry in entries %}
+      <li>{{ entry.date }} — Purity: {{ entry.oxygen_purity }}%</li>
+    {% empty %}
+      <li>No entries recorded this week.</li>
+    {% endfor %}
+  </ul>
+{% endblock %}

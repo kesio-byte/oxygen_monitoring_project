@@ -1,0 +1,7 @@
+from django.urls import path
+from .views import add_entry, weekly_dashboard
+
+urlpatterns = [
+    path('', add_entry, name='daily_entry_form'),
+    path('weekly/', weekly_dashboard, name='weekly_dashboard'),
+]

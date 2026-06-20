@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Weekly Records Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-6">Weekly Records Dashboard</h1>
+
+<!-- Threshold Alerts -->
+{% for week in weekly_data %}
+    {% if week.alerts %}
+        <div class="bg-red-100 text-red-800 px-4 py-2 rounded mb-4">
+            ⚠️ Alerts for {{ week.label }}:
+            <ul class="list-disc pl-6">
+                {% for alert in week.alerts %}
+                    <li>{{ alert }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% endfor %}
+
+<!-- Weekly Summary Table -->
+<table class="w-full border-collapse bg-white shadow-md rounded-lg mb-8">
+    <thead class="bg-blue-600 text-white">
+        <tr>
+            <th class="px-4 py-2">Week</th>
+            <th class="px-4 py-2">Avg Purity (%)</th>
+            <th class="px-4 py-2">Avg Pressure</th>
+            <th class="px-4 py-2">Avg Flow Rate</th>
+            <th class="px-4 py-2">Avg PDP</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for week in weekly_data %}
+        <tr class="border-b">
+            <td class="px-4 py-2">{{ week.label }}</td>
+            <td class="px-4 py-2 {% if week.avg_purity < 93 %} text-red-600 font-bold {% endif %}">
+                {{ week.avg_purity|floatformat:1 }}
+            </td>
+            <td class="px-4 py-2 {% if week.avg_pressure < 4.5 %} text-red-600 font-bold {% endif %}">
+                {{ week.avg_pressure|floatformat:1 }}
+            </td>
+            <td class="px-4 py-2">{{ week.avg_flow_rate|floatformat:1 }}</td>
+            <td class="px-4 py-2">{{ week.avg_pdp|floatformat:1 }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Chart.js Graph -->
+<canvas id="purityChart" class="w-full h-64"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('purityChart').getContext('2d');
+const purityChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: [{% for week in weekly_data %}'{{ week.label }}',{% endfor %}],
+        datasets: [{
+            label: 'Oxygen Purity (%)',
+            data: [{% for week in weekly_data %}{{ week.avg_purity }},{% endfor %}],
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            tension: 0.3
+        }]
+    },
+    options: {
+        scales: {
+            y: { beginAtZero: true, max: 100 }
+        }
+    }
+});
+</script>
+{% endblock %}

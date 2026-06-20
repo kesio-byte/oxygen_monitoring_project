@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Hospital Oxygen Monitoring{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+</head>
+<body class="bg-gray-100 text-gray-900 font-[Inter]">
+
+    <!-- Navbar -->
+    <nav class="bg-blue-600 text-white px-6 py-4 flex justify-between">
+        <div class="font-bold">Hospital Oxygen Monitoring System</div>
+        <div class="space-x-4">
+            <a href="/" class="hover:underline">Home</a>
+            <a href="/daily_entries/" class="hover:underline">Daily Entry</a>
+            <a href="/weekly_records/" class="hover:underline">Weekly Records</a>
+            <a href="/alerts/" class="hover:underline">Alerts</a>
+            <a href="/users/" class="hover:underline">User Management</a>
+        </div>
+    </nav>
+
+    <!-- Messages + Main Content -->
+    <main class="container mx-auto py-8 px-6">
+        {% if messages %}
+            <div class="space-y-2 mb-4">
+                {% for message in messages %}
+                    <div class="
+                        {% if message.tags == 'success' %} bg-green-100 text-green-800 border border-green-300 {% endif %}
+                        {% if message.tags == 'error' %} bg-red-100 text-red-800 border border-red-300 {% endif %}
+                        px-4 py-2 rounded
+                    ">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-blue-600 text-white text-center py-4 mt-8">
+        <p>Hospital IT Support | Version 1.0.0</p>
+    </footer>
+</body>
+</html>

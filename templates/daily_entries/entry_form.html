@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Enter Today’s Values{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-2xl font-bold mb-6">Enter Today’s Values</h1>
+    <p class="mb-4 text-gray-600">
+       Logged in as: {{ request.user.username }} | Date: {{ today|date:"F j, Y" }}
+    </p>
+
+    <form method="post" class="space-y-4 bg-white shadow-md rounded-lg p-6">
+        {% csrf_token %}
+
+        <!-- Global non-field errors -->
+        {% if form.non_field_errors %}
+          <div class="bg-red-100 text-red-700 p-2 mb-4 rounded">
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div>
+            <label class="block font-semibold">Oxygen Purity (%)</label>
+            {{ form.oxygen_purity }}
+            <small class="text-gray-500">{{ form.oxygen_purity.help_text }}</small>
+            {% for error in form.oxygen_purity.errors %}
+                <p class="text-red-500 text-sm">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="block font-semibold">Pressure (bar/kPa)</label>
+            {{ form.pressure }}
+            <small class="text-gray-500">{{ form.pressure.help_text }}</small>
+            {% for error in form.pressure.errors %}
+                <p class="text-red-500 text-sm">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="block font-semibold">Flow Rate (L/min)</label>
+            {{ form.flow_rate }}
+            <small class="text-gray-500">{{ form.flow_rate.help_text }}</small>
+            {% for error in form.flow_rate.errors %}
+                <p class="text-red-500 text-sm">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="block font-semibold">PDP (°C)</label>
+            {{ form.pdp }}
+            <small class="text-gray-500">{{ form.pdp.help_text }}</small>
+            {% for error in form.pdp.errors %}
+                <p class="text-red-500 text-sm">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <div>
+            <label class="block font-semibold">Notes</label>
+            {{ form.notes }}
+            <small class="text-gray-500">{{ form.notes.help_text }}</small>
+            {% for error in form.notes.errors %}
+                <p class="text-red-500 text-sm">{{ error }}</p>
+            {% endfor %}
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Submit Entry
+        </button>
+    </form>
+</div>
+{% endblock %}
