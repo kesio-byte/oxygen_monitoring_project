@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.utils import timezone
 from datetime import timedelta
 from django.db import models
+from django.db.models import Avg
 from .models import DailyEntry
 from .forms import DailyEntryForm   # ✅ import the form here
 
@@ -23,17 +24,23 @@ def add_entry(request):
         form = DailyEntryForm()
     return render(request, 'daily_entries/entry_form.html', {'form': form})
 
+
 def weekly_dashboard(request):
     today = timezone.now().date()
     week_start = today - timedelta(days=7)
     entries = DailyEntry.objects.filter(date__gte=week_start)
 
-    avg_purity = entries.aggregate(models.Avg('oxygen_purity'))['oxygen_purity__avg']
-    avg_pressure = entries.aggregate(models.Avg('pressure'))['pressure__avg']
+    # Aggregate averages for all key fields
+    averages = entries.aggregate(
+        purity=Avg("oxygen_purity"),
+        pressure=Avg("pressure"),
+        flow_rate=Avg("flow_rate"),
+        pdp=Avg("pdp"),
+    )
 
     context = {
-        'entries': entries,
-        'avg_purity': avg_purity,
-        'avg_pressure': avg_pressure,
+        "entries": entries,
+        "averages": averages,
     }
-    return render(request, 'daily_entries/weekly_dashboard.html', context)
+    return render(request, "daily_entries/weekly_dashboard.html", context)
+

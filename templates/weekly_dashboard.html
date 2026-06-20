@@ -1,19 +1,38 @@
 {% extends "base.html" %}
-
-{% block title %}Weekly Dashboard{% endblock %}
-
 {% block content %}
-  <h1 class="text-2xl font-bold mb-4">Weekly Dashboard</h1>
+  <h2>Weekly Oxygen Dashboard</h2>
 
-  <p>Average Oxygen Purity: {{ avg_purity|default:"No data" }}</p>
-  <p>Average Pressure: {{ avg_pressure|default:"No data" }}</p>
-
-  <h2 class="mt-6 font-semibold">Entries this week:</h2>
+  <h3>Averages</h3>
   <ul>
-    {% for entry in entries %}
-      <li>{{ entry.date }} — Purity: {{ entry.oxygen_purity }}%</li>
-    {% empty %}
-      <li>No entries recorded this week.</li>
-    {% endfor %}
+    <li>Purity: {{ averages.purity|default:"N/A" }}%</li>
+    <li>Pressure: {{ averages.pressure|default:"N/A" }} bar</li>
+    <li>Flow Rate: {{ averages.flow_rate|default:"N/A" }} L/min</li>
+    <li>PDP: {{ averages.pdp|default:"N/A" }} dB</li>
   </ul>
+
+  <h3>Entries</h3>
+  <table border="1">
+    <tr>
+      <th>Date</th>
+      <th>Operator</th>
+      <th>Purity</th>
+      <th>Pressure</th>
+      <th>Flow Rate</th>
+      <th>PDP</th>
+    </tr>
+    {% for entry in entries %}
+    <tr>
+      <td>{{ entry.date }}</td>
+      <td>{{ entry.operator }}</td>
+      <td>{{ entry.purity }}</td>
+      <td>{{ entry.pressure }}</td>
+      <td>{{ entry.flow_rate }}</td>
+      <td>{{ entry.pdp }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+      <td colspan="6">No entries this week.</td>
+    </tr>
+    {% endfor %}
+  </table>
 {% endblock %}
