@@ -1,0 +1,8 @@
+🎯 Examiner‑friendly outcome
+Form ✅
+
+Model ✅
+
+View Query ✅
+
+Template ❌ (likely variable mismatch)

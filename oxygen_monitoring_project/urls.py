@@ -1,7 +1,9 @@
+#oxygen_monitoring_project/urls.py
 from django.contrib import admin
-from django.urls import path, include   # 👈 add include here
+from django.urls import path, include
 from core.views import homepage
 from django.contrib.auth import views as auth_views
+from daily_entries.views import weekly_dashboard   # ✅ import here
 
 urlpatterns = [
     # Admin
@@ -17,8 +19,6 @@ urlpatterns = [
     # Daily Entries app
     path('daily_entries/', include('daily_entries.urls')),
 
-    # Weekly Records app 
-    path('weekly_records/', include('weekly_records.urls')), 
-    path('', homepage, name='homepage'),
-
+    # Weekly Records page (points to unified view)
+    path('weekly_records/', weekly_dashboard, name='weekly_records'),
 ]

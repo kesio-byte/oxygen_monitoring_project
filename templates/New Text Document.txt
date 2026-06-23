@@ -1,6 +1,0 @@
-from django.shortcuts import render
-
-def weekly_dashboard(request):
-    # Later you can query DailyEntry objects here
-    # For now, just render a template
-    return render(request, 'daily_entries/weekly_dashboard.html')

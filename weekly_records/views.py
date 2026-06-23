@@ -1,53 +1,54 @@
-from django.shortcuts import render, redirect
+
+from django.shortcuts import render
 from django.utils import timezone
+from datetime import timedelta
 from django.db.models import Avg
-from django.db.models.functions import ExtractWeek, ExtractYear
-from daily_entries.forms import DailyEntryForm
-from daily_entries.models import DailyEntry
-
-def add_entry(request):
-    form = DailyEntryForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
-        entry = form.save(commit=False)
-        entry.operator = request.user
-        entry.save()
-        return redirect('weekly_dashboard')
-
-    return render(request, 'daily_entries/entry_form.html', {
-        'form': form,
-        'today': timezone.now().date()
-    })
-
+from .models import DailyEntry
+import json
+from django.conf import settings
 
 def weekly_dashboard(request):
-    weekly_data = (
-        DailyEntry.objects
-        .annotate(week=ExtractWeek('date'), year=ExtractYear('date'))
-        .values('week', 'year')
-        .annotate(
-            avg_purity=Avg('oxygen_purity'),
-            avg_pressure=Avg('pressure'),
-            avg_flow_rate=Avg('flow_rate'),
-            avg_pdp=Avg('pdp')
-        )
-        .order_by('year', 'week')
-    )
+    today = timezone.now().date()
+    week_start = today - timedelta(days=30)  # last 30 days
+    entries = DailyEntry.objects.filter(date__gte=week_start).order_by("date")
 
+    print(entries.count())
+    print("DB path:", settings.DATABASES['default']['NAME'])
+    print("WEEKLY DASHBOARD VIEW LOADED")
+
+    # Calculate averages
+    avg_purity = entries.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
+    avg_pressure = entries.aggregate(Avg("pressure"))["pressure__avg"]
+    avg_flow = entries.aggregate(Avg("flow_rate"))["flow_rate__avg"]
+    avg_pdp = entries.aggregate(Avg("pdp"))["pdp__avg"]
+
+    # Safety thresholds
     SAFE_PURITY = 93.0
     SAFE_PRESSURE = 4.5
-    for week in weekly_data:
-        alerts = []
-        if week['avg_purity'] < SAFE_PURITY:
-            alerts.append(f"Oxygen purity averaged {week['avg_purity']:.1f}% — below safe threshold.")
-        if week['avg_pressure'] < SAFE_PRESSURE:
-            alerts.append(f"Pressure averaged {week['avg_pressure']:.1f} bar — below safe threshold.")
-        week['alerts'] = alerts
-        week['label'] = f"Week {week['week']} ({week['year']})"
+    alerts = []
+    if avg_purity is not None and avg_purity < SAFE_PURITY:
+        alerts.append(f"Oxygen purity averaged {avg_purity:.1f}% — below safe threshold.")
+    if avg_pressure is not None and avg_pressure < SAFE_PRESSURE:
+        alerts.append(f"Pressure averaged {avg_pressure:.1f} bar — below safe threshold.")
 
-    return render(request, 'weekly_records/dashboard.html', {'weekly_data': weekly_data})
+    # Prepare JSON arrays for Chart.js
+    labels_json = json.dumps([str(e.date) for e in entries])
+    purity_json = json.dumps([float(e.oxygen_purity) for e in entries])
+    pressure_json = json.dumps([float(e.pressure) for e in entries])
+    flow_json = json.dumps([float(e.flow_rate) for e in entries])
+    pdp_json = json.dumps([float(e.pdp) for e in entries])
 
-
-def weekly_dashboard(request):
-    # Later you can query DailyEntry objects here
-    # For now, just render a template
-    return render(request, 'daily_entries/weekly_dashboard.html')
+    context = {
+        "entries": entries,
+        "avg_purity": avg_purity,
+        "avg_pressure": avg_pressure,
+        "avg_flow": avg_flow,
+        "avg_pdp": avg_pdp,
+        "alerts": alerts,
+        "labels_json": labels_json,
+        "purity_json": purity_json,
+        "pressure_json": pressure_json,
+        "flow_json": flow_json,
+        "pdp_json": pdp_json,
+    }
+    return render(request, "daily_entries/weekly_dashboard.html", context)

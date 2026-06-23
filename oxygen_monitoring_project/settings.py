@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     'alerts',
     'users',
     'core',
+    "widget_tweaks",
 ]
 
 MIDDLEWARE = [
@@ -80,7 +81,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = "Africa/Blantyre"
 USE_I18N = True
 USE_TZ = True
 
