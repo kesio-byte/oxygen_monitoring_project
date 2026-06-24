@@ -15,6 +15,7 @@ from .forms import DailyEntryForm
 from django_tables2 import RequestConfig
 from .tables import DailyEntryTable
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 
 def weekly_dashboard(request):
     today = timezone.now().date()
@@ -63,8 +64,6 @@ def weekly_dashboard(request):
     }
     return render(request, "daily_entries/weekly_dashboard.html", context)
 
-
-
 @login_required
 def add_entry(request):
     if request.method == 'POST':
@@ -73,17 +72,50 @@ def add_entry(request):
             entry = form.save(commit=False)
             entry.operator = request.user
             entry.save()
+
+            # If AJAX request, return JSON
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "entry": {
+                        "date": str(entry.date),
+                        "operator": entry.operator.username,
+                        "oxygen_purity": entry.oxygen_purity,
+                        "pressure": entry.pressure,
+                        "flow_rate": entry.flow_rate,
+                        "pdp": entry.pdp,
+                    }
+                })
+
+            # Normal form submission
             messages.success(request, "✅ Entry saved successfully.")
-            return redirect('homepage')
+            return redirect('weekly_dashboard')
         else:
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"success": False, "errors": form.errors})
             messages.error(request, "⚠️ Please correct the errors below.")
     else:
         form = DailyEntryForm()
 
     context = {
         'form': form,
-        'today': timezone.now().date()  # 👈 add this
+        'today': timezone.now().date()
     }
     return render(request, 'daily_entries/entry_form.html', context)
 
+
+def entries_api(request):
+    entries = DailyEntry.objects.order_by("-date")[:50]
+    data = [
+        {
+            "date": e.date,
+            "operator": e.operator.username,
+            "oxygen_purity": e.oxygen_purity,
+            "pressure": e.pressure,
+            "flow_rate": e.flow_rate,
+            "pdp": e.pdp,
+        }
+        for e in entries
+    ]
+    return JsonResponse(data, safe=False)
 
