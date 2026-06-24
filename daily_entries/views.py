@@ -17,6 +17,7 @@ from .tables import DailyEntryTable
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 
+
 def weekly_dashboard(request):
     today = timezone.now().date()
     week_start = today - timedelta(days=7)
@@ -109,6 +110,25 @@ def entries_api(request):
     data = [
         {
             "date": e.date,
+            "operator": e.operator.username,
+            "oxygen_purity": e.oxygen_purity,
+            "pressure": e.pressure,
+            "flow_rate": e.flow_rate,
+            "pdp": e.pdp,
+        }
+        for e in entries
+    ]
+    return JsonResponse(data, safe=False)
+
+def monthly_api(request):
+    today = timezone.now().date()
+    month_start = today - timedelta(days=30)
+
+    entries = DailyEntry.objects.filter(date__gte=month_start).order_by("-date")
+
+    data = [
+        {
+            "date": str(e.date),
             "operator": e.operator.username,
             "oxygen_purity": e.oxygen_purity,
             "pressure": e.pressure,
