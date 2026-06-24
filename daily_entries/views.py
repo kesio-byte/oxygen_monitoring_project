@@ -14,19 +14,26 @@ from django.contrib import messages
 from .forms import DailyEntryForm
 from django_tables2 import RequestConfig
 from .tables import DailyEntryTable
+from django.core.paginator import Paginator
 
 def weekly_dashboard(request):
     today = timezone.now().date()
-    week_start = today - timedelta(days=7)  # last 7 days
-    entries = DailyEntry.objects.filter(date__gte=week_start).order_by("date")
+    week_start = today - timedelta(days=7)
 
-    # Calculate averages
-    avg_purity = entries.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
-    avg_pressure = entries.aggregate(Avg("pressure"))["pressure__avg"]
-    avg_flow = entries.aggregate(Avg("flow_rate"))["flow_rate__avg"]
-    avg_pdp = entries.aggregate(Avg("pdp"))["pdp__avg"]
+    # Order newest first
+    entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-date")
 
-    # Safety thresholds
+    # Paginate: 10 entries per page
+    paginator = Paginator(entries_qs, 10)
+    page_number = request.GET.get("page")
+    entries = paginator.get_page(page_number)
+
+    # Calculate averages from full queryset
+    avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
+    avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"]
+    avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"]
+    avg_pdp = entries_qs.aggregate(Avg("pdp"))["pdp__avg"]
+
     SAFE_PURITY = 93.0
     SAFE_PRESSURE = 4.5
     alerts = []
@@ -35,15 +42,14 @@ def weekly_dashboard(request):
     if avg_pressure is not None and avg_pressure < SAFE_PRESSURE:
         alerts.append(f"Pressure averaged {avg_pressure:.1f} bar — below safe threshold.")
 
-    # Prepare JSON arrays for Chart.js
-    labels_json = json.dumps([str(e.date) for e in entries])
-    purity_json = json.dumps([float(e.oxygen_purity) for e in entries])
-    pressure_json = json.dumps([float(e.pressure) for e in entries])
-    flow_json = json.dumps([float(e.flow_rate) for e in entries])
-    pdp_json = json.dumps([float(e.pdp) for e in entries])
+    labels_json = json.dumps([str(e.date) for e in entries_qs])
+    purity_json = json.dumps([float(e.oxygen_purity) for e in entries_qs])
+    pressure_json = json.dumps([float(e.pressure) for e in entries_qs])
+    flow_json = json.dumps([float(e.flow_rate) for e in entries_qs])
+    pdp_json = json.dumps([float(e.pdp) for e in entries_qs])
 
     context = {
-        "entries": entries,
+        "entries": entries,  # paginated page object
         "avg_purity": avg_purity,
         "avg_pressure": avg_pressure,
         "avg_flow": avg_flow,
@@ -56,7 +62,8 @@ def weekly_dashboard(request):
         "pdp_json": pdp_json,
     }
     return render(request, "daily_entries/weekly_dashboard.html", context)
-from django.utils import timezone
+
+
 
 @login_required
 def add_entry(request):

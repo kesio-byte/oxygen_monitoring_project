@@ -2,7 +2,7 @@
 {% load static %}
 {% block content %}
   <h2 class="text-2xl font-bold mb-4">Weekly Oxygen Dashboard</h2>
-  <p class="text-sm text-gray-500 mb-6">DEBUG: daily_entries/weekly_dashboard.html loaded</p>
+  <!---p class="text-sm text-gray-500 mb-6">DEBUG: daily_entries/weekly_dashboard.html loaded</p --->
 
   <!-- Averages as cards -->
   <h3 class="text-xl font-semibold mb-4">Averages</h3>
@@ -82,5 +82,22 @@
         {% endfor %}
       </tbody>
     </table>
+  </div>
+
+  <!-- Pagination controls -->
+  <div class="mt-4 flex justify-center space-x-2">
+    {% if entries.has_previous %}
+      <a href="?page={{ entries.previous_page_number }}" 
+         class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Previous</a>
+    {% endif %}
+
+    <span class="px-3 py-1 bg-gray-100 rounded">
+      Page {{ entries.number }} of {{ entries.paginator.num_pages }}
+    </span>
+
+    {% if entries.has_next %}
+      <a href="?page={{ entries.next_page_number }}" 
+         class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Next</a>
+    {% endif %}
   </div>
 {% endblock %}

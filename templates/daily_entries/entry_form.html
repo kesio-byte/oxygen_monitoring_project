@@ -13,35 +13,60 @@
     <form method="post" class="bg-white shadow-md rounded-lg p-6 space-y-6">
         {% csrf_token %}
 
+        <!-- Global non-field errors -->
+        {% if form.non_field_errors %}
+          <div class="bg-red-100 text-red-700 p-2 mb-4 rounded">
+            {% for error in form.non_field_errors %}
+              <p>{{ error }}</p>
+            {% endfor %}
+          </div>
+        {% endif %}
+
         <!-- Oxygen Purity -->
-        <div class="grid grid-cols-3 gap-4 items-center">
+        <div class="grid grid-cols-3 gap-4 items-start">
             <label class="font-semibold text-sm col-span-1">Oxygen Purity (%)</label>
             <div class="col-span-2">
                 {{ form.oxygen_purity|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" }}
+                <small class="text-gray-500">{{ form.oxygen_purity.help_text }}</small>
+                {% for error in form.oxygen_purity.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
 
         <!-- Pressure -->
-        <div class="grid grid-cols-3 gap-4 items-center">
+        <div class="grid grid-cols-3 gap-4 items-start">
             <label class="font-semibold text-sm col-span-1">Pressure (bar/kPa)</label>
             <div class="col-span-2">
                 {{ form.pressure|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" }}
+                <small class="text-gray-500">{{ form.pressure.help_text }}</small>
+                {% for error in form.pressure.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
 
         <!-- Flow Rate -->
-        <div class="grid grid-cols-3 gap-4 items-center">
+        <div class="grid grid-cols-3 gap-4 items-start">
             <label class="font-semibold text-sm col-span-1">Flow Rate (L/min)</label>
             <div class="col-span-2">
                 {{ form.flow_rate|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" }}
+                <small class="text-gray-500">{{ form.flow_rate.help_text }}</small>
+                {% for error in form.flow_rate.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
 
         <!-- PDP -->
-        <div class="grid grid-cols-3 gap-4 items-center">
+        <div class="grid grid-cols-3 gap-4 items-start">
             <label class="font-semibold text-sm col-span-1">PDP (°C)</label>
             <div class="col-span-2">
                 {{ form.pdp|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" }}
+                <small class="text-gray-500">{{ form.pdp.help_text }}</small>
+                {% for error in form.pdp.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
 
@@ -50,6 +75,10 @@
             <label class="font-semibold text-sm col-span-1">Notes</label>
             <div class="col-span-2">
                 {{ form.notes|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500 resize-y h-20" }}
+                <small class="text-gray-500">{{ form.notes.help_text }}</small>
+                {% for error in form.notes.errors %}
+                    <p class="text-red-500 text-sm mt-1">{{ error }}</p>
+                {% endfor %}
             </div>
         </div>
 

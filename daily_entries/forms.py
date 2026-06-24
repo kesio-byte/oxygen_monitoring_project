@@ -6,35 +6,31 @@ class DailyEntryForm(forms.ModelForm):
     class Meta:
         model = DailyEntry
         fields = ['oxygen_purity', 'pressure', 'flow_rate', 'pdp', 'notes']
-        help_texts = {
-            'oxygen_purity': "Enter a value between 90–100%",
-            'pressure': "Pressure must be greater than 0 bar",
-            'flow_rate': "Flow rate in L/min",
-            'pdp': "Enter dew point below 0°C (negative values)",
-        }
+        # remove help_texts to avoid repetition
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['oxygen_purity'].widget.attrs.update({
-            'placeholder': 'Enter oxygen purity (%)',
+            'placeholder': 'Enter oxygen purity (%) between 90–100%',
             'class': 'form-input w-full'
         })
         self.fields['pressure'].widget.attrs.update({
-            'placeholder': 'Enter pressure (bar)',
+            'placeholder': 'Enter pressure (bar) greater than 0',
             'class': 'form-input w-full'
         })
         self.fields['flow_rate'].widget.attrs.update({
-            'placeholder': 'Enter flow rate',
+            'placeholder': 'Enter flow rate in L/min',
             'class': 'form-input w-full'
         })
         self.fields['pdp'].widget.attrs.update({
-            'placeholder': 'Enter PDP value',
+            'placeholder': 'Enter PDP value (must be below 0°C)',
             'class': 'form-input w-full'
         })
         self.fields['notes'].widget.attrs.update({
             'placeholder': 'Optional notes',
             'class': 'form-textarea w-full'
         })
+
 
     # ✅ Field-level validation methods
     def clean_oxygen_purity(self):
