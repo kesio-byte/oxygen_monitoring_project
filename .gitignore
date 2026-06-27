@@ -1,0 +1,19 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# SQLite database
+db.sqlite3
+
+# Virtual environment
+venv/
+
+# Logs
+*.log
+
+# Django static files (collected)
+staticfiles/
+
+# Media uploads
+media/
