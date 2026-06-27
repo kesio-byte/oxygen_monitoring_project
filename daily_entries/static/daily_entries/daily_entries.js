@@ -29,10 +29,12 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Fetch entries JSON and render table + graph
+// Fetch entries JSON and render table + graph
 function loadEntries() {
-  fetch("/api/entries/")
+  fetch("/daily_entries/api/entries/")   // 👈 corrected path
     .then(res => res.json())
     .then(entries => {
+      console.log("Fetched entries:", entries); // debug
       renderTable(entries);
       renderWeeklyGraph(
         entries.map(e => e.date).reverse(),
@@ -41,7 +43,8 @@ function loadEntries() {
         entries.map(e => e.flow_rate).reverse(),
         entries.map(e => e.pdp).reverse()
       );
-    });
+    })
+    .catch(err => console.error("Error loading entries:", err));
 }
 
 // Render table dynamically

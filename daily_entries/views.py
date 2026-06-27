@@ -16,6 +16,7 @@ from django_tables2 import RequestConfig
 from .tables import DailyEntryTable
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from django.db.models import Avg
 
 
 def weekly_dashboard(request):
@@ -139,3 +140,71 @@ def monthly_api(request):
     ]
     return JsonResponse(data, safe=False)
 
+
+def alerts_api(request):
+    today = timezone.now().date()
+    week_start = today - timedelta(days=7)
+    entries_qs = DailyEntry.objects.filter(date__gte=week_start)
+
+    # Weekly averages
+    avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
+    avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"]
+    avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"]
+    avg_pdp = entries_qs.aggregate(Avg("pdp"))["pdp__avg"]
+
+    # Latest entry
+    latest = DailyEntry.objects.order_by("-date").first()
+
+    # Thresholds
+    SAFE_PURITY = 93.0
+    CRITICAL_PURITY = 90.0
+    SAFE_PRESSURE = 4.5
+    CRITICAL_PRESSURE = 4.0
+    SAFE_FLOW = 5.0
+    CRITICAL_FLOW = 3.0
+    SAFE_PDP = -55.0
+    CRITICAL_PDP = -50.0
+
+    alerts = []
+
+    # --- Weekly trend alerts ---
+    if avg_purity is not None and avg_purity < SAFE_PURITY:
+        alerts.append({"level": "warning", "type": "trend", "message": f"⚠️ Weekly purity averaged {avg_purity:.1f}% — below safe threshold"})
+    if avg_pressure is not None and avg_pressure < SAFE_PRESSURE:
+        alerts.append({"level": "warning", "type": "trend", "message": f"⚠️ Weekly pressure averaged {avg_pressure:.1f} bar — below safe threshold"})
+    if avg_flow is not None and avg_flow < SAFE_FLOW:
+        alerts.append({"level": "warning", "type": "trend", "message": f"⚠️ Weekly flow averaged {avg_flow:.1f} L/min — below safe threshold"})
+    if avg_pdp is not None and avg_pdp > SAFE_PDP:
+        alerts.append({"level": "warning", "type": "trend", "message": f"⚠️ Weekly PDP averaged {avg_pdp:.1f} °C — above safe threshold"})
+
+    # --- Latest entry alerts ---
+    if latest:
+        if latest.oxygen_purity < CRITICAL_PURITY:
+            alerts.append({"level": "critical", "type": "latest", "message": f"❌ Latest purity critically low ({latest.oxygen_purity:.1f}%)"})
+        elif latest.oxygen_purity < SAFE_PURITY:
+            alerts.append({"level": "warning", "type": "latest", "message": f"⚠️ Latest purity below safe threshold ({latest.oxygen_purity:.1f}%)"})
+
+        if latest.pressure < CRITICAL_PRESSURE:
+            alerts.append({"level": "critical", "type": "latest", "message": f"❌ Latest pressure critically low ({latest.pressure:.1f} bar)"})
+        elif latest.pressure < SAFE_PRESSURE:
+            alerts.append({"level": "warning", "type": "latest", "message": f"⚠️ Latest pressure below safe threshold ({latest.pressure:.1f} bar)"})
+
+        if latest.flow_rate < CRITICAL_FLOW:
+            alerts.append({"level": "critical", "type": "latest", "message": f"❌ Latest flow rate critically low ({latest.flow_rate:.1f} L/min)"})
+        elif latest.flow_rate < SAFE_FLOW:
+            alerts.append({"level": "warning", "type": "latest", "message": f"⚠️ Latest flow rate below safe threshold ({latest.flow_rate:.1f} L/min)"})
+
+        if latest.pdp > CRITICAL_PDP:
+            alerts.append({"level": "critical", "type": "latest", "message": f"❌ Latest PDP critically high ({latest.pdp:.1f} °C)"})
+        elif latest.pdp > SAFE_PDP:
+            alerts.append({"level": "warning", "type": "latest", "message": f"⚠️ Latest PDP above safe threshold ({latest.pdp:.1f} °C)"})
+
+    # Technician notification
+    if alerts:
+        alerts.append({"level": "info", "type": "system", "message": "✔️ SMS sent to technician"})
+
+    return JsonResponse(alerts, safe=False)
+
+
+def alerts_page(request):
+    return render(request, "daily_entries/alerts.html")
