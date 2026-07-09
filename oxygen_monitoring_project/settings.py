@@ -93,5 +93,5 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 🔹 Authentication redirects
 LOGIN_URL = '/login/'
-LOGIN_REDIRECT_URL = '/'
-LOGOUT_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/daily_entries/'  # Redirect to daily entries after login
+LOGOUT_REDIRECT_URL = '/login/'  # Redirect to login page after logout

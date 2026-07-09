@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-=======
 // dashboard.js
 
 let weeklyChart; // keep reference so we can update instead of recreate
@@ -31,9 +29,8 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // Fetch entries JSON and render table + graph
-// Fetch entries JSON and render table + graph
 function loadEntries() {
-  fetch("/daily_entries/api/entries/")   // 👈 corrected path
+  fetch("/daily_entries/api/entries/")   // ✅ corrected path
     .then(res => res.json())
     .then(entries => {
       console.log("Fetched entries:", entries); // debug
@@ -70,7 +67,6 @@ function renderTable(entries) {
 }
 
 // Updated renderWeeklyGraph with persistent chart
->>>>>>> 39c4455 (Implement three-stage alerts model and dashboard integration)
 function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
   const ctx = document.getElementById('weeklyGraph').getContext('2d');
   new Chart(ctx, {

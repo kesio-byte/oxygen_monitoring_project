@@ -23,6 +23,24 @@ function loadAlerts() {
 
 // Auto-refresh every 30s
 document.addEventListener("DOMContentLoaded", () => {
-  loadAlerts();
-  setInterval(loadAlerts, 30000);
+  fetch("/daily_entries/api/alerts/")
+    .then(res => res.json())
+    .then(alerts => {
+      const box = document.getElementById("alertsBox");
+      box.innerHTML = "";
+      alerts.forEach(a => {
+        const div = document.createElement("div");
+        div.className =
+          a.level === "critical" ? "bg-red-100 text-red-800 p-2 rounded" :
+          a.level === "warning" ? "bg-yellow-100 text-yellow-800 p-2 rounded" :
+          "bg-green-100 text-green-800 p-2 rounded";
+        div.textContent = a.message;
+        box.appendChild(div);
+      });
+    })
+    .catch(err => {
+      document.getElementById("alertsBox").innerHTML =
+        "<p class='text-red-500'>Error loading alerts</p>";
+      console.error("Error fetching alerts:", err);
+    });
 });
