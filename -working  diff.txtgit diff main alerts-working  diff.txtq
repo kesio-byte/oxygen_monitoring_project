@@ -1,0 +1,292 @@
+[1mdiff --git a/daily_entries/__pycache__/urls.cpython-313.pyc b/daily_entries/__pycache__/urls.cpython-313.pyc[m
+[1mindex 22cdd22..797c8c0 100644[m
+Binary files a/daily_entries/__pycache__/urls.cpython-313.pyc and b/daily_entries/__pycache__/urls.cpython-313.pyc differ
+[1mdiff --git a/daily_entries/__pycache__/views.cpython-313.pyc b/daily_entries/__pycache__/views.cpython-313.pyc[m
+[1mindex a77cd67..f0c65cb 100644[m
+Binary files a/daily_entries/__pycache__/views.cpython-313.pyc and b/daily_entries/__pycache__/views.cpython-313.pyc differ
+[1mdiff --git a/daily_entries/static/daily_entries/alerts.js b/daily_entries/static/daily_entries/alerts.js[m
+[1mindex 6d02b4b..7df7543 100644[m
+[1m--- a/daily_entries/static/daily_entries/alerts.js[m
+[1m+++ b/daily_entries/static/daily_entries/alerts.js[m
+[36m@@ -1,7 +1,7 @@[m
+ // alerts.js[m
+ [m
+ function loadAlerts() {[m
+[31m-  fetch("/daily_entries/api/alerts/")   // ✅ must match urls.py[m
+[32m+[m[32m  fetch("/daily_entries/api/alerts/")   // 👈 must match urls.py[m
+     .then(res => res.json())[m
+     .then(alerts => {[m
+       console.log("Fetched alerts:", alerts); // debug[m
+[36m@@ -18,17 +18,29 @@[m [mfunction loadAlerts() {[m
+         alertBox.appendChild(div);[m
+       });[m
+     })[m
+[31m-    .catch(err => {[m
+[31m-      const box = document.getElementById("alertsBox");[m
+[31m-      if (box) {[m
+[31m-        box.innerHTML = "<p class='text-red-500'>Error loading alerts</p>";[m
+[31m-      }[m
+[31m-      console.error("Error fetching alerts:", err);[m
+[31m-    });[m
+[32m+[m[32m    .catch(err => console.error("Error loading alerts:", err));[m
+ }[m
+ [m
+ // Auto-refresh every 30s[m
+ document.addEventListener("DOMContentLoaded", () => {[m
+[31m-  loadAlerts();[m
+[31m-  setInterval(loadAlerts, 30000);[m
+[32m+[m[32m  fetch("/daily_entries/api/alerts/")[m
+[32m+[m[32m    .then(res => res.json())[m
+[32m+[m[32m    .then(alerts => {[m
+[32m+[m[32m      const box = document.getElementById("alertsBox");[m
+[32m+[m[32m      box.innerHTML = "";[m
+[32m+[m[32m      alerts.forEach(a => {[m
+[32m+[m[32m        const div = document.createElement("div");[m
+[32m+[m[32m        div.className =[m
+[32m+[m[32m          a.level === "critical" ? "bg-red-100 text-red-800 p-2 rounded" :[m
+[32m+[m[32m          a.level === "warning" ? "bg-yellow-100 text-yellow-800 p-2 rounded" :[m
+[32m+[m[32m          "bg-green-100 text-green-800 p-2 rounded";[m
+[32m+[m[32m        div.textContent = a.message;[m
+[32m+[m[32m        box.appendChild(div);[m
+[32m+[m[32m      });[m
+[32m+[m[32m    })[m
+[32m+[m[32m    .catch(err => {[m
+[32m+[m[32m      document.getElementById("alertsBox").innerHTML =[m
+[32m+[m[32m        "<p class='text-red-500'>Error loading alerts</p>";[m
+[32m+[m[32m      console.error("Error fetching alerts:", err);[m
+[32m+[m[32m    });[m
+ });[m
+[1mdiff --git a/daily_entries/static/daily_entries/daily_entries.js b/daily_entries/static/daily_entries/daily_entries.js[m
+[1mindex 5bab726..1b58941 100644[m
+[1m--- a/daily_entries/static/daily_entries/daily_entries.js[m
+[1m+++ b/daily_entries/static/daily_entries/daily_entries.js[m
+[36m@@ -69,54 +69,23 @@[m [mfunction renderTable(entries) {[m
+ // Updated renderWeeklyGraph with persistent chart[m
+ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {[m
+   const ctx = document.getElementById('weeklyGraph').getContext('2d');[m
+[31m-  if (weeklyChart) {[m
+[31m-    weeklyChart.data.labels = labels;[m
+[31m-    weeklyChart.data.datasets[0].data = purityData;[m
+[31m-    weeklyChart.data.datasets[1].data = pressureData;[m
+[31m-    weeklyChart.data.datasets[2].data = flowRateData;[m
+[31m-    weeklyChart.data.datasets[3].data = pdpData;[m
+[31m-    weeklyChart.update();[m
+[31m-  } else {[m
+[31m-    weeklyChart = new Chart(ctx, {[m
+[31m-      type: 'line',[m
+[31m-      data: {[m
+[31m-        labels: labels,[m
+[31m-        datasets: [[m
+[31m-          { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },[m
+[31m-          { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },[m
+[31m-          { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },[m
+[31m-          { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false }[m
+[31m-        ][m
+[31m-      },[m
+[31m-      options: {[m
+[31m-        responsive: true,[m
+[31m-        plugins: {[m
+[31m-          legend: { position: 'bottom' },[m
+[31m-          title: { display: true, text: 'Weekly Oxygen Monitoring Trends' }[m
+[31m-        }[m
+[32m+[m[32m  new Chart(ctx, {[m
+[32m+[m[32m    type: 'line',[m
+[32m+[m[32m    data: {[m
+[32m+[m[32m      labels: labels,[m
+[32m+[m[32m      datasets: [[m
+[32m+[m[32m        { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },[m
+[32m+[m[32m        { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },[m
+[32m+[m[32m        { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },[m
+[32m+[m[32m        { label: 'PDP (dB)', data: pdpData, borderColor: 'orange', fill: false }[m
+[32m+[m[32m      ][m
+[32m+[m[32m    },[m
+[32m+[m[32m    options: {[m
+[32m+[m[32m      responsive: true,[m
+[32m+[m[32m      plugins: {[m
+[32m+[m[32m        legend: { position: 'bottom' },[m
+[32m+[m[32m        title: { display: true, text: 'Weekly Oxygen Monitoring Trends' }[m
+       }[m
+[31m-    });[m
+[31m-  }[m
+[31m-}[m
+[31m-[m
+[31m-// Reload graph after new entry[m
+[31m-function updateGraph() {[m
+[31m-  loadEntries();[m
+[31m-}[m
+[31m-[m
+[31m-// Add a single new row (after AJAX form submit)[m
+[31m-function addRowToTable(entry) {[m
+[31m-  const tbody = document.querySelector("#entriesTableBody");[m
+[31m-  if (!tbody) return;[m
+[31m-  const row = document.createElement("tr");[m
+[31m-  row.className = "hover:bg-gray-50";[m
+[31m-  row.innerHTML = `[m
+[31m-    <td class="px-4 py-2">${entry.date}</td>[m
+[31m-    <td class="px-4 py-2">${entry.operator}</td>[m
+[31m-    <td class="px-4 py-2">${entry.oxygen_purity}</td>[m
+[31m-    <td class="px-4 py-2">${entry.pressure}</td>[m
+[31m-    <td class="px-4 py-2">${entry.flow_rate}</td>[m
+[31m-    <td class="px-4 py-2">${entry.pdp}</td>[m
+[31m-  `;[m
+[31m-  tbody.prepend(row); // newest first[m
+[32m+[m[32m    }[m
+[32m+[m[32m  });[m
+ }[m
+[1mdiff --git a/daily_entries/urls.py b/daily_entries/urls.py[m
+[1mindex 291b19c..0183aa4 100644[m
+[1m--- a/daily_entries/urls.py[m
+[1m+++ b/daily_entries/urls.py[m
+[36m@@ -9,12 +9,11 @@[m [mfrom .views import ([m
+     alerts_api,[m
+     alerts_page,[m
+ )[m
+[31m-[m
+ urlpatterns = [[m
+     path('', add_entry, name='daily_entry_form'),[m
+     path('weekly/', weekly_dashboard, name='weekly_dashboard'),[m
+     path('api/entries/', entries_api, name='entries_api'),[m
+[31m-    path('api/monthly/', monthly_api, name='monthly_api'),   # ✅ monthly API[m
+[31m-    path('api/alerts/', alerts_api, name='alerts_api'),      # ✅ alerts API[m
+[31m-    path('alerts/', alerts_page, name='alerts_page'),        # ✅ alerts page[m
+[32m+[m[32m    path('api/monthly/', monthly_api, name='monthly_api'),  # ✅ monthly API[m
+[32m+[m[32m    path('api/alerts/', alerts_api, name='alerts_api'),    # ✅ alerts API[m
+[32m+[m[32m    path('alerts/', alerts_page, name='alerts_page'),      # ✅ alerts page[m
+ ][m
+[1mdiff --git a/daily_entries/views.py b/daily_entries/views.py[m
+[1mindex a2c5704..6769017 100644[m
+[1m--- a/daily_entries/views.py[m
+[1m+++ b/daily_entries/views.py[m
+[36m@@ -1,3 +1,7 @@[m
+[32m+[m[32m# The Daily_entries weekly_dashboard view retrieves daily entries for the last 7 days,[m[41m [m
+[32m+[m[32m# calculates averages for oxygen purity, pressure, flow rate,[m[41m [m
+[32m+[m[32m# and PDP, checks against safety thresholds,[m[41m [m
+[32m+[m[32m# and prepares data for rendering in a template with Chart.js visualizations.[m
+ from django.shortcuts import render, redirect[m
+ from django.utils import timezone[m
+ from datetime import timedelta[m
+[36m@@ -10,19 +14,23 @@[m [mfrom .forms import DailyEntryForm[m
+ from django_tables2 import RequestConfig[m
+ from .tables import DailyEntryTable[m
+ from django.core.paginator import Paginator[m
+[31m-from django.http import JsonResponse[m
+[32m+[m[32mfrom django.http import JsonResponse   # ✅ keep this[m
+[32m+[m
+ [m
+ [m
+ def weekly_dashboard(request):[m
+     today = timezone.now().date()[m
+     week_start = today - timedelta(days=7)[m
+ [m
+[32m+[m[32m    # Order newest first[m
+     entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-date")[m
+ [m
+[32m+[m[32m    # Paginate: 10 entries per page[m
+     paginator = Paginator(entries_qs, 10)[m
+     page_number = request.GET.get("page")[m
+     entries = paginator.get_page(page_number)[m
+ [m
+[32m+[m[32m    # Calculate averages from full queryset[m
+     avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"][m
+     avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"][m
+     avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"][m
+[36m@@ -43,7 +51,7 @@[m [mdef weekly_dashboard(request):[m
+     pdp_json = json.dumps([float(e.pdp) for e in entries_qs])[m
+ [m
+     context = {[m
+[31m-        "entries": entries,[m
+[32m+[m[32m        "entries": entries,  # paginated page object[m
+         "avg_purity": avg_purity,[m
+         "avg_pressure": avg_pressure,[m
+         "avg_flow": avg_flow,[m
+[36m@@ -57,7 +65,6 @@[m [mdef weekly_dashboard(request):[m
+     }[m
+     return render(request, "daily_entries/weekly_dashboard.html", context)[m
+ [m
+[31m-[m
+ @login_required[m
+ def add_entry(request):[m
+     if request.method == 'POST':[m
+[36m@@ -66,36 +73,19 @@[m [mdef add_entry(request):[m
+             entry = form.save(commit=False)[m
+             entry.operator = request.user[m
+             entry.save()[m
+[31m-[m
+[31m-            if request.headers.get("x-requested-with") == "XMLHttpRequest":[m
+[31m-                return JsonResponse({[m
+[31m-                    "success": True,[m
+[31m-                    "entry": {[m
+[31m-                        "date": str(entry.date),[m
+[31m-                        "operator": entry.operator.username,[m
+[31m-                        "oxygen_purity": entry.oxygen_purity,[m
+[31m-                        "pressure": entry.pressure,[m
+[31m-                        "flow_rate": entry.flow_rate,[m
+[31m-                        "pdp": entry.pdp,[m
+[31m-                    }[m
+[31m-                })[m
+[31m-[m
+             messages.success(request, "✅ Entry saved successfully.")[m
+[31m-            return redirect('weekly_dashboard')[m
+[32m+[m[32m            return redirect('homepage')[m
+         else:[m
+[31m-            if request.headers.get("x-requested-with") == "XMLHttpRequest":[m
+[31m-                return JsonResponse({"success": False, "errors": form.errors})[m
+             messages.error(request, "⚠️ Please correct the errors below.")[m
+     else:[m
+         form = DailyEntryForm()[m
+ [m
+     context = {[m
+         'form': form,[m
+[31m-        'today': timezone.now().date()[m
+[32m+[m[32m        'today': timezone.now().date()  # 👈 add this[m
+     }[m
+     return render(request, 'daily_entries/entry_form.html', context)[m
+ [m
+[31m-[m
+ def entries_api(request):[m
+     entries = DailyEntry.objects.order_by("-date")[:50][m
+     data = [[m
+[36m@@ -135,13 +125,16 @@[m [mdef alerts_api(request):[m
+     week_start = today - timedelta(days=7)[m
+     entries_qs = DailyEntry.objects.filter(date__gte=week_start)[m
+ [m
+[32m+[m[32m    # Weekly averages[m
+     avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"][m
+     avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"][m
+     avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"][m
+     avg_pdp = entries_qs.aggregate(Avg("pdp"))["pdp__avg"][m
+ [m
+[32m+[m[32m    # Latest entry[m
+     latest = DailyEntry.objects.order_by("-date").first()[m
+ [m
+[32m+[m[32m    # Thresholds[m
+     SAFE_PURITY, CRITICAL_PURITY = 93.0, 90.0[m
+     SAFE_PRESSURE, CRITICAL_PRESSURE = 4.5, 4.0[m
+     SAFE_FLOW, CRITICAL_FLOW = 5.0, 3.0[m
+[1mdiff --git a/oxygen_monitoring_project/__pycache__/settings.cpython-313.pyc b/oxygen_monitoring_project/__pycache__/settings.cpython-313.pyc[m
+[1mindex eacaa73..d422889 100644[m
+Binary files a/oxygen_monitoring_project/__pycache__/settings.cpython-313.pyc and b/oxygen_monitoring_project/__pycache__/settings.cpython-313.pyc differ
+[1mdiff --git a/oxygen_monitoring_project/__pycache__/urls.cpython-313.pyc b/oxygen_monitoring_project/__pycache__/urls.cpython-313.pyc[m
+[1mindex 3ebbf25..80a0bed 100644[m
+Binary files a/oxygen_monitoring_project/__pycache__/urls.cpython-313.pyc and b/oxygen_monitoring_project/__pycache__/urls.cpython-313.pyc differ
+[1mdiff --git a/templates/daily_entries/alerts.html b/templates/daily_entries/alerts.html[m
+[1mindex 1c3686d..83eef94 100644[m
+[1m--- a/templates/daily_entries/alerts.html[m
+[1m+++ b/templates/daily_entries/alerts.html[m
+[36m@@ -3,13 +3,13 @@[m
+ {% block title %}Alerts{% endblock %}[m
+ [m
+ {% block content %}[m
+[32m+[m[32m<script src="/static/daily_entries/alerts.js"></script>[m
+[32m+[m
+   <h1 class="text-2xl font-bold mb-4">System Alerts</h1>[m
+   <p class="mb-6 text-gray-700">Live monitoring of oxygen supply parameters.</p>[m
+ [m
+   <div id="alertsBox" class="space-y-2">[m
+     <p class="text-gray-500">Loading alerts...</p>[m
+   </div>[m
+[31m-[m
+[31m-  <!-- Load alerts.js for dynamic updates -->[m
+[31m-  <script src="{% static 'daily_entries/alerts.js' %}"></script>[m
+ {% endblock %}[m
+[41m+[m

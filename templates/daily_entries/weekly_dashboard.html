@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+  <h2 class="text-2xl font-bold mb-4">Weekly Oxygen Dashboard</h2>
+  <p class="text-sm text-gray-500 mb-6">Monitor purity, pressure, flow rate, and PDP with alerts.</p>
+
+  <!-- Averages as cards -->
+  <h3 class="text-xl font-semibold mb-4">Averages</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white shadow rounded-lg p-4">
+      <p class="text-sm text-gray-500">Oxygen Purity</p>
+      <p class="text-2xl font-bold text-blue-600">{{ avg_purity|default:"N/A" }}%</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4">
+      <p class="text-sm text-gray-500">Pressure</p>
+      <p class="text-2xl font-bold text-blue-600">{{ avg_pressure|default:"N/A" }} bar/kPa</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4">
+      <p class="text-sm text-gray-500">Flow Rate</p>
+      <p class="text-2xl font-bold text-blue-600">{{ avg_flow|default:"N/A" }} L/min</p>
+    </div>
+    <div class="bg-white shadow rounded-lg p-4">
+      <p class="text-sm text-gray-500">PDP</p>
+      <p class="text-2xl font-bold text-blue-600">{{ avg_pdp|default:"N/A" }} °C</p>
+    </div>
+  </div>
+
+  <!-- Alerts (server-rendered) -->
+  {% if alerts %}
+    <div class="bg-red-100 text-red-800 border border-red-300 px-4 py-2 rounded mb-6">
+      <ul class="list-disc pl-5">
+        {% for alert in alerts %}
+          <li>{{ alert }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <!-- Graph -->
+  <div class="bg-white shadow rounded-lg p-4 mb-6">
+    <canvas id="weeklyGraph" class="w-full h-64"></canvas>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{% static 'daily_entries/daily_entries.js' %}"></script>
+  <script>
+    const labels = {{ labels_json|safe }};
+    const purityData = {{ purity_json|safe }};
+    const pressureData = {{ pressure_json|safe }};
+    const flowRateData = {{ flow_json|safe }};
+    const pdpData = {{ pdp_json|safe }};
+    renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData);
+  </script>
+
+  <!-- Entries table -->
+  <h3 class="text-xl font-semibold mb-4">Entries</h3>
+  <div class="overflow-x-auto shadow rounded-lg">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-blue-600 text-white">
+        <tr>
+          <th class="px-4 py-2 text-left">Date</th>
+          <th class="px-4 py-2 text-left">Operator</th>
+          <th class="px-4 py-2 text-left">Purity</th>
+          <th class="px-4 py-2 text-left">Pressure</th>
+          <th class="px-4 py-2 text-left">Flow Rate</th>
+          <th class="px-4 py-2 text-left">PDP</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-200">
+        {% for entry in entries %}
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-2">{{ entry.date }}</td>
+          <td class="px-4 py-2">{{ entry.operator }}</td>
+          <td class="px-4 py-2">{{ entry.oxygen_purity }}</td>
+          <td class="px-4 py-2">{{ entry.pressure }}</td>
+          <td class="px-4 py-2">{{ entry.flow_rate }}</td>
+          <td class="px-4 py-2">{{ entry.pdp }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="6" class="px-4 py-2 text-center text-gray-500">No entries this week.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination controls -->
+  <div class="mt-4 flex justify-center space-x-2">
+    {% if entries.has_previous %}
+      <a href="?page={{ entries.previous_page_number }}" 
+         class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Previous</a>
+    {% endif %}
+
+    <span class="px-3 py-1 bg-gray-100 rounded">
+      Page {{ entries.number }} of {{ entries.paginator.num_pages }}
+    </span>
+
+    {% if entries.has_next %}
+      <a href="?page={{ entries.next_page_number }}" 
+         class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">Next</a>
+    {% endif %}
+  </div>
+
+{% endblock %}

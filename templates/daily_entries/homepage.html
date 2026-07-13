@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Hospital Oxygen Monitoring Dashboard{% endblock %}
+
+{% block content %}
+    <h1 class="text-3xl font-bold mb-4">Hospital Oxygen Monitoring Dashboard</h1>
+    <p class="mb-8 text-gray-700">A digital solution to record, monitor, and alert on oxygen supply parameters.</p>
+
+    <!-- Action Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <a href="/daily_entries/" class="bg-white shadow-md rounded-lg p-6 text-center hover:bg-blue-50">
+            Enter Today’s Values
+        </a>
+        <a href="/weekly_records/" class="bg-white shadow-md rounded-lg p-6 text-center hover:bg-blue-50">
+            View Weekly Dashboard
+        </a>
+        <a href="/alerts/" class="bg-white shadow-md rounded-lg p-6 text-center hover:bg-blue-50">
+            Check Alerts
+        </a>
+    </div>
+
+    <!-- Sidebar Alerts -->
+    <div id="alertsBox" class="space-y-2">
+        <p class="text-gray-500">Loading alerts...</p>
+    </div>
+
+    <!-- Load alerts.js for dynamic Recent Alerts -->
+    <script src="{% static 'daily_entries/alerts.js' %}"></script>
+{% endblock %}
