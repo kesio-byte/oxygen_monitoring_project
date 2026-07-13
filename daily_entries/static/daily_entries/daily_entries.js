@@ -30,16 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Fetch entries JSON and render table + graph
 function loadEntries() {
-<<<<<<< HEAD
-  fetch("/api/entries/")
-    .then(res => res.json())
-    .then(entries => {
-=======
   fetch("/daily_entries/api/entries/")   // ✅ corrected path
     .then(res => res.json())
     .then(entries => {
       console.log("Fetched entries:", entries); // debug
->>>>>>> alerts-working
       renderTable(entries);
       renderWeeklyGraph(
         entries.map(e => e.date).reverse(),
@@ -48,12 +42,8 @@ function loadEntries() {
         entries.map(e => e.flow_rate).reverse(),
         entries.map(e => e.pdp).reverse()
       );
-<<<<<<< HEAD
-    });
-=======
     })
     .catch(err => console.error("Error loading entries:", err));
->>>>>>> alerts-working
 }
 
 // Render table dynamically
@@ -73,33 +63,6 @@ function renderTable(entries) {
       <td class="px-4 py-2">${e.pdp}</td>
     `;
     tbody.appendChild(row);
-<<<<<<< HEAD
-=======
-  });
-}
-
-// Updated renderWeeklyGraph with persistent chart
-function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
-  const ctx = document.getElementById('weeklyGraph').getContext('2d');
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: labels,
-      datasets: [
-        { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
-        { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
-        { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
-        { label: 'PDP (dB)', data: pdpData, borderColor: 'orange', fill: false }
-      ]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'bottom' },
-        title: { display: true, text: 'Weekly Oxygen Monitoring Trends' }
-      }
-    }
->>>>>>> alerts-working
   });
 }
 

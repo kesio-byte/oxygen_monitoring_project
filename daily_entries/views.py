@@ -1,7 +1,3 @@
-# The Daily_entries weekly_dashboard view retrieves daily entries for the last 7 days, 
-# calculates averages for oxygen purity, pressure, flow rate, 
-# and PDP, checks against safety thresholds, 
-# and prepares data for rendering in a template with Chart.js visualizations.
 from django.shortcuts import render, redirect
 from django.utils import timezone
 from datetime import timedelta
@@ -14,27 +10,19 @@ from .forms import DailyEntryForm
 from django_tables2 import RequestConfig
 from .tables import DailyEntryTable
 from django.core.paginator import Paginator
-<<<<<<< HEAD
 from django.http import JsonResponse
-=======
-from django.http import JsonResponse   # ✅ keep this
 
-
->>>>>>> alerts-working
 
 def weekly_dashboard(request):
     today = timezone.now().date()
     week_start = today - timedelta(days=7)
 
-    # Order newest first
     entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-date")
 
-    # Paginate: 10 entries per page
     paginator = Paginator(entries_qs, 10)
     page_number = request.GET.get("page")
     entries = paginator.get_page(page_number)
 
-    # Calculate averages from full queryset
     avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
     avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"]
     avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"]
@@ -55,7 +43,7 @@ def weekly_dashboard(request):
     pdp_json = json.dumps([float(e.pdp) for e in entries_qs])
 
     context = {
-        "entries": entries,  # paginated page object
+        "entries": entries,
         "avg_purity": avg_purity,
         "avg_pressure": avg_pressure,
         "avg_flow": avg_flow,
@@ -69,6 +57,7 @@ def weekly_dashboard(request):
     }
     return render(request, "daily_entries/weekly_dashboard.html", context)
 
+
 @login_required
 def add_entry(request):
     if request.method == 'POST':
@@ -78,7 +67,6 @@ def add_entry(request):
             entry.operator = request.user
             entry.save()
 
-            # If AJAX request, return JSON
             if request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse({
                     "success": True,
@@ -92,7 +80,6 @@ def add_entry(request):
                     }
                 })
 
-            # Normal form submission
             messages.success(request, "✅ Entry saved successfully.")
             return redirect('weekly_dashboard')
         else:
@@ -108,6 +95,7 @@ def add_entry(request):
     }
     return render(request, 'daily_entries/entry_form.html', context)
 
+
 def entries_api(request):
     entries = DailyEntry.objects.order_by("-date")[:50]
     data = [
@@ -123,13 +111,6 @@ def entries_api(request):
     ]
     return JsonResponse(data, safe=False)
 
-<<<<<<< HEAD
-def entries_api(request):
-    entries = DailyEntry.objects.order_by("-date")[:50]
-    data = [
-        {
-            "date": e.date,
-=======
 
 def monthly_api(request):
     today = timezone.now().date()
@@ -138,7 +119,6 @@ def monthly_api(request):
     data = [
         {
             "date": str(e.date),
->>>>>>> alerts-working
             "operator": e.operator.username,
             "oxygen_purity": e.oxygen_purity,
             "pressure": e.pressure,
@@ -149,24 +129,19 @@ def monthly_api(request):
     ]
     return JsonResponse(data, safe=False)
 
-<<<<<<< HEAD
-=======
 
 def alerts_api(request):
     today = timezone.now().date()
     week_start = today - timedelta(days=7)
     entries_qs = DailyEntry.objects.filter(date__gte=week_start)
 
-    # Weekly averages
     avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
     avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"]
     avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"]
     avg_pdp = entries_qs.aggregate(Avg("pdp"))["pdp__avg"]
 
-    # Latest entry
     latest = DailyEntry.objects.order_by("-date").first()
 
-    # Thresholds
     SAFE_PURITY, CRITICAL_PURITY = 93.0, 90.0
     SAFE_PRESSURE, CRITICAL_PRESSURE = 4.5, 4.0
     SAFE_FLOW, CRITICAL_FLOW = 5.0, 3.0
@@ -215,4 +190,3 @@ def alerts_api(request):
 
 def alerts_page(request):
     return render(request, "daily_entries/alerts.html")
->>>>>>> alerts-working
