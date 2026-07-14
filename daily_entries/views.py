@@ -11,6 +11,7 @@ from django_tables2 import RequestConfig
 from .tables import DailyEntryTable
 from django.core.paginator import Paginator
 from django.http import JsonResponse
+from alerts.utils import send_alert_sms
 
 
 def weekly_dashboard(request):
@@ -187,6 +188,55 @@ def alerts_api(request):
 
     return JsonResponse(alerts, safe=False)
 
-
 def alerts_page(request):
     return render(request, "daily_entries/alerts.html")
+
+@login_required
+def add_entry(request):
+    if request.method == 'POST':
+        form = DailyEntryForm(request.POST)
+        if form.is_valid():
+            entry = form.save(commit=False)
+            entry.operator = request.user
+            entry.save()
+
+            # 🚨 SMS trigger logic
+            if entry.oxygen_purity < 90:
+                send_alert_sms(f"⚠️ Oxygen purity critically low ({entry.oxygen_purity:.1f}%)")
+            elif entry.pressure < 4.0:
+                send_alert_sms(f"⚠️ Pressure critically low ({entry.pressure:.1f} bar)")
+            elif entry.flow_rate < 3.0:
+                send_alert_sms(f"⚠️ Flow rate critically low ({entry.flow_rate:.1f} L/min)")
+            elif entry.pdp > -50.0:
+                send_alert_sms(f"⚠️ PDP critically high ({entry.pdp:.1f} °C)")
+
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({
+                    "success": True,
+                    "entry": {
+                        "date": str(entry.date),
+                        "operator": entry.operator.username,
+                        "oxygen_purity": entry.oxygen_purity,
+                        "pressure": entry.pressure,
+                        "flow_rate": entry.flow_rate,
+                        "pdp": entry.pdp,
+                    }
+                })
+
+            messages.success(request, "✅ Entry saved successfully.")
+            return redirect('weekly_dashboard')
+        else:
+            # Handle invalid form
+            if request.headers.get("x-requested-with") == "XMLHttpRequest":
+                return JsonResponse({"success": False, "errors": form.errors})
+            messages.error(request, "⚠️ Please correct the errors below.")
+            return render(request, 'daily_entries/entry_form.html', {"form": form, "today": timezone.now().date()})
+    else:
+        form = DailyEntryForm()
+
+    context = {
+        'form': form,
+        'today': timezone.now().date()
+    }
+    return render(request, 'daily_entries/entry_form.html', context)
+
