@@ -41,7 +41,20 @@
   <div class="bg-white shadow rounded-lg p-4 mb-6">
     <canvas id="weeklyGraph" class="w-full h-64"></canvas>
   </div>
+
+  <!-- Load Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Inject JSON data from Django -->
+  <script>
+    const labels = {{ labels_json|safe }};
+    const purityData = {{ purity_json|safe }};
+    const pressureData = {{ pressure_json|safe }};
+    const flowRateData = {{ flow_json|safe }};
+    const pdpData = {{ pdp_json|safe }};
+  </script>
+
+  <!-- Load your dashboard logic -->
   <script src="{% static 'daily_entries/dashboard.js' %}"></script>
 
   <!-- Entries table -->
