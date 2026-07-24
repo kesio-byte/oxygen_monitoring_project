@@ -62,22 +62,21 @@
   <div class="overflow-x-auto shadow rounded-lg">
     <table class="min-w-full divide-y divide-gray-200">
       <thead class="bg-blue-600 text-white">
-        <tr>
-          <th class="px-4 py-2 text-left">Date</th>
-          <th class="px-4 py-2 text-left">Operator</th>
-          <th class="px-4 py-2 text-left">Purity</th>
-          <th class="px-4 py-2 text-left">Pressure</th>
-          <th class="px-4 py-2 text-left">Flow Rate</th>
-          <th class="px-4 py-2 text-left">PDP</th>
-        </tr>
-      </thead>
-      
-  <tbody class="bg-white divide-y divide-gray-200">
+  <tr>
+    <th class="px-4 py-2 text-left">Date</th>
+    <th class="px-4 py-2 text-left">Time</th>
+    <th class="px-4 py-2 text-left">Operator</th>
+    <th class="px-4 py-2 text-left">Purity</th>
+    <th class="px-4 py-2 text-left">Pressure</th>
+    <th class="px-4 py-2 text-left">Flow Rate</th>
+    <th class="px-4 py-2 text-left">PDP</th>
+  </tr>
+</thead>
+<tbody class="bg-white divide-y divide-gray-200">
   {% for entry in entries %}
   <tr class="hover:bg-gray-50">
-    <td class="px-4 py-2">
-      {{ entry.date|date:"M d, Y" }} {{ entry.time|time:"H:i" }}
-    </td>
+    <td class="px-4 py-2">{{ entry.date|date:"M d, Y" }}</td>
+    <td class="px-4 py-2">{{ entry.time|time:"H:i" }}</td>
     <td class="px-4 py-2">{{ entry.operator }}</td>
     <td class="px-4 py-2">{{ entry.oxygen_purity }}</td>
     <td class="px-4 py-2">{{ entry.pressure }}</td>
@@ -86,11 +85,11 @@
   </tr>
   {% empty %}
   <tr>
-    <td colspan="6" class="px-4 py-2 text-center text-gray-500">No entries this week.</td>
+    <td colspan="7" class="px-4 py-2 text-center text-gray-500">No entries this week.</td>
   </tr>
   {% endfor %}
 </tbody>
-
+  <tr>
     </table>
   </div>
 
