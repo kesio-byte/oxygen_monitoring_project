@@ -35,8 +35,8 @@ class DailyEntryForm(forms.ModelForm):
     # ✅ Field-level validation methods
     def clean_oxygen_purity(self):
         value = self.cleaned_data.get('oxygen_purity')
-        if value < 90 or value > 100:
-            raise forms.ValidationError("Oxygen purity must be between 90–100%.")
+        if value < 0 or value > 100:
+            raise forms.ValidationError("Oxygen purity must be between 0–100%.")
         return value
 
     def clean_pdp(self):

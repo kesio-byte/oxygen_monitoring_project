@@ -24,8 +24,8 @@ class DailyEntry(models.Model):
 
     # ✅ Field-level validation methods
     def clean_oxygen_purity(self):
-        if self.oxygen_purity < 90 or self.oxygen_purity > 100:
-            raise ValidationError("Oxygen purity must be between 90–100%.")
+        if self.oxygen_purity < 0 or self.oxygen_purity > 100:
+            raise ValidationError("Oxygen purity must be between 0–100%.")
 
     def clean_pdp(self):
         if self.pdp > 0:
