@@ -13,43 +13,8 @@ from django.core.paginator import Paginator
 from django.http import JsonResponse
 from alerts.utils import send_alert_sms
 from .models import DailyEntry
+import os
 
-def alerts_api(request):
-    alerts = []
-
-    # Get the most recent entry
-    latest_entry = DailyEntry.objects.order_by('-date').first()
-
-    if latest_entry:
-        # Oxygen purity check
-        if latest_entry.purity < 93:
-            alerts.append({
-                "level": "critical",
-                "message": f"Oxygen purity dropped to {latest_entry.purity}%"
-            })
-
-        # Pressure check
-        if latest_entry.pressure < 4.5:  # example threshold in bar
-            alerts.append({
-                "level": "warning",
-                "message": f"Pressure low: {latest_entry.pressure} bar"
-            })
-
-        # Flow rate check
-        if latest_entry.flow_rate < 10:  # example threshold in L/min
-            alerts.append({
-                "level": "info",
-                "message": f"Flow rate stable at {latest_entry.flow_rate} L/min"
-            })
-
-    # If no alerts, show a default message
-    if not alerts:
-        alerts.append({
-            "level": "info",
-            "message": "All parameters within safe range."
-        })
-
-    return JsonResponse(alerts, safe=False)
 
 def weekly_dashboard(request):
     today = timezone.now().date()
@@ -110,8 +75,6 @@ def entries_api(request):
     ]
     return JsonResponse(data, safe=False)
 
-def alerts_page(request):
-    return render(request, "daily_entries/alerts.html")
 
 @login_required
 def add_entry(request):
@@ -253,4 +216,24 @@ def alerts_api(request):
                        "message": "✔️ SMS sent to technician"})
 
     return JsonResponse(alerts, safe=False)
+
+def alerts_page(request):
+    # Latest 20 entries, newest first
+    alert_history = DailyEntry.objects.order_by('-date', '-time')[:20]
+    technician_phone = os.getenv("TECHNICIAN_PHONE")
+    return render(request, "daily_entries/alerts.html", {
+        "alert_history": alert_history,
+        "technician_phone": technician_phone,
+    })
+
+
+def alerts_view(request):
+    technician_phone = os.getenv("TECHNICIAN_PHONE")
+    alert_history = DailyEntry.objects.all().order_by('-date', '-time')
+    return render(request, "daily_entries/alerts.html", {   # 👈 same template
+        "alert_history": alert_history,
+        "technician_phone": technician_phone,
+    })
+
+
 

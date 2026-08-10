@@ -17,4 +17,5 @@ urlpatterns = [
     path('api/monthly/', monthly_api, name='monthly_api'),   # ✅ monthly API
     path('api/alerts/', alerts_api, name='alerts_api'),      # ✅ alerts API
     path('alerts/', alerts_page, name='alerts_page'),        # ✅ alerts page
+    
 ]
