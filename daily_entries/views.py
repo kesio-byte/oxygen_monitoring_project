@@ -12,7 +12,44 @@ from .tables import DailyEntryTable
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from alerts.utils import send_alert_sms
+from .models import DailyEntry
 
+def alerts_api(request):
+    alerts = []
+
+    # Get the most recent entry
+    latest_entry = DailyEntry.objects.order_by('-date').first()
+
+    if latest_entry:
+        # Oxygen purity check
+        if latest_entry.purity < 93:
+            alerts.append({
+                "level": "critical",
+                "message": f"Oxygen purity dropped to {latest_entry.purity}%"
+            })
+
+        # Pressure check
+        if latest_entry.pressure < 4.5:  # example threshold in bar
+            alerts.append({
+                "level": "warning",
+                "message": f"Pressure low: {latest_entry.pressure} bar"
+            })
+
+        # Flow rate check
+        if latest_entry.flow_rate < 10:  # example threshold in L/min
+            alerts.append({
+                "level": "info",
+                "message": f"Flow rate stable at {latest_entry.flow_rate} L/min"
+            })
+
+    # If no alerts, show a default message
+    if not alerts:
+        alerts.append({
+            "level": "info",
+            "message": "All parameters within safe range."
+        })
+
+    return JsonResponse(alerts, safe=False)
 
 def weekly_dashboard(request):
     today = timezone.now().date()
@@ -72,9 +109,6 @@ def entries_api(request):
         for e in entries
     ]
     return JsonResponse(data, safe=False)
-
-
-
 
 def alerts_page(request):
     return render(request, "daily_entries/alerts.html")
