@@ -1,5 +1,4 @@
-// daily_entries/static/daily_entries/alerts.js
-
+// Load live alerts
 function loadAlerts() {
   fetch("/daily_entries/api/alerts/")
     .then(response => response.json())
@@ -35,3 +34,44 @@ document.addEventListener("DOMContentLoaded", () => {
   loadAlerts();
   setInterval(loadAlerts, 30000); // refresh every 30s
 });
+
+// Technician acknowledgment
+function updateAck(entryId, checked) {
+  const id = parseInt(entryId, 10); // ensure numeric
+  fetch(`/daily_entries/alerts/ack/${id}/`, {
+    method: "POST",
+    headers: {
+      "X-CSRFToken": window.csrfToken,
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: "ack=" + checked
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (!data.success) {
+        alert("Failed to update technician acknowledgment");
+      }
+    })
+    .catch(err => {
+      console.error("Error updating technician ack:", err);
+    });
+}
+
+// Filter alerts by mode
+window.filterAlerts = function(mode) {
+  const rows = document.querySelectorAll("tbody tr");
+  rows.forEach(row => {
+    const checkbox = row.querySelector("input[type='checkbox']");
+    if (mode === "unack") {
+      // Show only rows with unchecked boxes
+      if (checkbox && !checkbox.checked) {
+        row.style.display = "";
+      } else {
+        row.style.display = "none";
+      }
+    } else {
+      // Show all rows
+      row.style.display = "";
+    }
+  });
+};
