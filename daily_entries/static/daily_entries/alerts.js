@@ -75,3 +75,69 @@ window.filterAlerts = function(mode) {
     }
   });
 };
+// Tab switcher
+window.showTab = function(tab) {
+  // Hide all tabs
+  document.getElementById("tab-live").classList.add("hidden");
+  document.getElementById("tab-all").classList.add("hidden");
+  document.getElementById("tab-unack").classList.add("hidden");
+
+  // Show the selected tab
+  document.getElementById("tab-" + tab).classList.remove("hidden");
+
+  // Special case: Unacknowledged tab
+  if (tab === "unack") {
+    refreshUnack();
+  }
+};
+
+window.showTab = function(tab) {
+  // Hide all tabs
+  document.getElementById("tab-live").classList.add("hidden");
+  document.getElementById("tab-all").classList.add("hidden");
+  document.getElementById("tab-unack").classList.add("hidden");
+
+  // Show the selected tab
+  document.getElementById("tab-" + tab).classList.remove("hidden");
+
+  // Special case: Unacknowledged tab
+  if (tab === "unack") {
+    refreshUnack();
+  }
+};
+
+window.refreshUnack = function() {
+  const allRows = document.querySelectorAll("#tab-all tbody tr");
+  const unackTable = document.getElementById("unackTable");
+  unackTable.innerHTML = ""; // clear previous
+
+  // Build a new table
+  const table = document.createElement("table");
+  table.className = "min-w-full table-fixed border border-gray-300";
+
+  // Copy headers from All Alerts
+  table.innerHTML = document.querySelector("#tab-all table thead").outerHTML + "<tbody></tbody>";
+
+  const tbody = table.querySelector("tbody");
+
+  // Keep only rows where technician_ack is false (checkbox not checked)
+  allRows.forEach(row => {
+    const checkbox = row.querySelector("input[type='checkbox']");
+    if (checkbox && !checkbox.checked) {
+      tbody.appendChild(row.cloneNode(true));
+    }
+  });
+
+  // If none found
+  if (tbody.children.length === 0) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td colspan="10" class="text-gray-500 text-center">No unacknowledged alerts</td>`;
+    tbody.appendChild(tr);
+  }
+
+  unackTable.appendChild(table);
+};
+
+document.addEventListener("DOMContentLoaded", function() {
+  showTab('live');
+});

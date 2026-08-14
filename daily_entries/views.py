@@ -14,6 +14,19 @@ from django.http import JsonResponse
 from alerts.utils import send_alert_sms
 from .models import DailyEntry
 import os
+from django.views.decorators.http import require_POST
+from . import views
+
+@require_POST
+def update_ack(request, entry_id):
+    try:
+        entry = DailyEntry.objects.get(id=entry_id)
+        ack_value = request.POST.get("ack") == "true"
+        entry.technician_ack = ack_value
+        entry.save()
+        return JsonResponse({"success": True})
+    except DailyEntry.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Entry not found"})
 
 
 def weekly_dashboard(request):

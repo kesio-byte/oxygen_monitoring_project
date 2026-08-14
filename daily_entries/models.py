@@ -21,6 +21,7 @@ class DailyEntry(models.Model):
     # Auto flags
     alert_status = models.BooleanField(default=False)
     critical_flag = models.BooleanField(default=False)
+    technician_ack = models.BooleanField(default=False)
 
     # ✅ Field-level validation methods
     def clean_oxygen_purity(self):

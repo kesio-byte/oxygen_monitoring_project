@@ -87,7 +87,15 @@ USE_I18N = True
 USE_TZ = True
 
 # Static files
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+
+# Point to the actual folder where your app’s static files live
+STATICFILES_DIRS = [
+    BASE_DIR / "daily_entries" / "static"
+]
+
+# Where collectstatic will copy everything for deployment
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

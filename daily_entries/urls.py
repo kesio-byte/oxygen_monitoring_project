@@ -1,6 +1,7 @@
 # daily_entries/urls.py
 
 from django.urls import path
+from . import views
 from .views import (
     add_entry,
     weekly_dashboard,
@@ -17,5 +18,7 @@ urlpatterns = [
     path('api/monthly/', monthly_api, name='monthly_api'),   # ✅ monthly API
     path('api/alerts/', alerts_api, name='alerts_api'),      # ✅ alerts API
     path('alerts/', alerts_page, name='alerts_page'),        # ✅ alerts page
+    path("alerts/ack/<int:entry_id>/", views.update_ack, name="update_ack"),
+
     
 ]
