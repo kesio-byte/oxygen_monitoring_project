@@ -8,11 +8,16 @@
   <h1 class="text-2xl font-bold mb-4">System Alerts</h1>
 
   <!-- Three Buttons -->
-  <div class="flex justify-center space-x-4 mt-6">
-    <button onclick="showTab('live')" class="px-4 py-2 bg-blue-600 text-white rounded">Live Monitoring</button>
-    <button onclick="showTab('all')" class="px-4 py-2 bg-green-600 text-white rounded">All Alerts</button>
+ <div class="flex justify-center space-x-4 mt-6">
+  <button onclick="showTab('live')" class="px-4 py-2 bg-blue-600 text-white rounded">Live Monitoring</button>
+  <button onclick="showTab('all')" class="px-4 py-2 bg-green-600 text-white rounded">All Alerts</button>
+
+  {% if perms.daily_entries.change_dailyentry %}
     <button onclick="showTab('unack')" class="px-4 py-2 bg-red-600 text-white rounded">Unacknowledged</button>
-  </div>
+{% endif %}
+
+
+</div>
 
   <!-- Tab Content -->
   <div id="tab-live" class="mt-6 hidden">
@@ -70,14 +75,18 @@
                 <a href="tel:{{ technician_phone }}" class="font-semibold underline {% if entry.critical_flag %} text-red-700 {% else %} text-orange-700 {% endif %}">
                   {{ technician_phone }}
                 </a>
-                <input type="checkbox"
-                       {% if entry.technician_ack %}checked{% endif %}
-                       onchange="updateAck('{{ entry.pk }}', this.checked)"
-                       class="ml-2">
+
+                {% if perms.daily_entries.change_dailyentry %}
+                  <input type="checkbox"
+                        {% if entry.technician_ack %}checked{% endif %}
+                        onchange="updateAck('{{ entry.pk }}', this.checked)"
+                        class="ml-2">
+                {% endif %}
               {% else %}
                 <span class="text-gray-400 italic">—</span>
               {% endif %}
             </td>
+
             <td>
               {% if entry.notes %}
                 <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full">{{ entry.notes }}</span>

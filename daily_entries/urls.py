@@ -19,6 +19,6 @@ urlpatterns = [
     path('api/alerts/', alerts_api, name='alerts_api'),      # ✅ alerts API
     path('alerts/', alerts_page, name='alerts_page'),        # ✅ alerts page
     path("alerts/ack/<int:entry_id>/", views.update_ack, name="update_ack"),
-
-    
+    path("unacknowledged/", views.unacknowledged_alerts, name="unacknowledged_alerts"),
+  
 ]

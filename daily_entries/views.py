@@ -14,6 +14,8 @@ from django.http import JsonResponse
 from alerts.utils import send_alert_sms
 from .models import DailyEntry
 import os
+
+from django.contrib.auth.decorators import login_required, permission_required
 from django.views.decorators.http import require_POST
 from . import views
 
@@ -248,5 +250,19 @@ def alerts_view(request):
         "technician_phone": technician_phone,
     })
 
+@login_required
+def live_monitoring(request):
+    # Everyone logged in can see
+    return render(request, "daily_entries/live.html")
+
+@permission_required('daily_entries.view_dailyentry', raise_exception=True)
+def all_alerts(request):
+    # Viewer, Technician, Admin
+    return render(request, "daily_entries/all.html")
+
+@permission_required('daily_entries.change_dailyentry', raise_exception=True)
+def unacknowledged_alerts(request):
+    # Technician + Admin only
+    return render(request, "daily_entries/unack.html")
 
 
