@@ -1,23 +1,57 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Avg
 from .models import DailyEntry
 import json
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required,user_passes_test
 from django.contrib import messages
 from .forms import DailyEntryForm
 from django_tables2 import RequestConfig
 from .tables import DailyEntryTable
 from django.core.paginator import Paginator
 from django.http import JsonResponse
-from alerts.utils import send_alert_sms
+from alerts.utils import  send_alert_email
 from .models import DailyEntry
 import os
-
-from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.models import User, Group
 from django.views.decorators.http import require_POST
 from . import views
+from django.contrib.auth.models import User, Group
+from django.db.models import Q
+from django.contrib import messages
+from .forms import CustomUserCreationForm
+
+@login_required
+def home(request):
+     return render(request, "daily_entries/homepage.html")
+
+@login_required
+@permission_required("auth.add_user", raise_exception=True)
+def register(request):
+    if request.method == "POST":
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Account created successfully.")
+            return redirect("users_list")
+    else:
+        form = CustomUserCreationForm()
+    return render(request, "daily_entries/register.html", {"form": form})
+
+@login_required
+@permission_required("auth.change_user", raise_exception=True)
+def manage_roles(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    groups = Group.objects.all()
+
+    if request.method == "POST":
+        selected_roles = request.POST.getlist("roles")
+        user.groups.set(Group.objects.filter(id__in=selected_roles))
+        messages.success(request, f"Roles updated for {user.username}.")
+        return redirect("users_list")
+
+    return render(request, "daily_entries/manage_roles.html", {"user": user, "groups": groups})
 
 @require_POST
 def update_ack(request, entry_id):
@@ -30,7 +64,7 @@ def update_ack(request, entry_id):
     except DailyEntry.DoesNotExist:
         return JsonResponse({"success": False, "error": "Entry not found"})
 
-
+@login_required
 def weekly_dashboard(request):
     today = timezone.now().date()
     week_start = today - timedelta(days=7)
@@ -100,15 +134,15 @@ def add_entry(request):
             entry.operator = request.user
             entry.save()
 
-            # 🚨 SMS trigger logic
+            # 🚨 Email trigger logic
             if entry.oxygen_purity < 90:
-                send_alert_sms(f"⚠️ Oxygen purity critically low ({entry.oxygen_purity:.1f}%)")
+                send_alert_email(f"⚠️ Oxygen purity critically low ({entry.oxygen_purity:.1f}%)")
             elif entry.pressure < 4.0:
-                send_alert_sms(f"⚠️ Pressure critically low ({entry.pressure:.1f} bar)")
+                send_alert_email(f"⚠️ Pressure critically low ({entry.pressure:.1f} bar)")
             elif entry.flow_rate < 3.0:
-                send_alert_sms(f"⚠️ Flow rate critically low ({entry.flow_rate:.1f} L/min)")
+                send_alert_email(f"⚠️ Flow rate critically low ({entry.flow_rate:.1f} L/min)")
             elif entry.pdp > -50.0:
-                send_alert_sms(f"⚠️ PDP critically high ({entry.pdp:.1f} °C)")
+                send_alert_email(f"⚠️ PDP critically high ({entry.pdp:.1f} °C)")
 
             if request.headers.get("x-requested-with") == "XMLHttpRequest":
                 return JsonResponse({
@@ -228,34 +262,35 @@ def alerts_api(request):
 
     if any(a["level"] in ["warning", "critical"] for a in latest_alerts):
         alerts.append({"level": "info", "type": "system",
-                       "message": "✔️ SMS sent to technician"})
+                       "message": "✔️ Email sent to technician"})
 
     return JsonResponse(alerts, safe=False)
 
+@login_required
 def alerts_page(request):
     # Latest 20 entries, newest first
     alert_history = DailyEntry.objects.order_by('-date', '-time')[:20]
-    technician_phone = os.getenv("TECHNICIAN_PHONE")
+    technician_email = os.getenv("TECHNICIAN_EMAIL")
     return render(request, "daily_entries/alerts.html", {
         "alert_history": alert_history,
-        "technician_phone": technician_phone,
+        "technician_email": technician_email,
     })
 
-
+@login_required
 def alerts_view(request):
-    technician_phone = os.getenv("TECHNICIAN_PHONE")
+    technician_email = os.getenv("TECHNICIAN_EMAIL")
     alert_history = DailyEntry.objects.all().order_by('-date', '-time')
-    return render(request, "daily_entries/alerts.html", {   # 👈 same template
+    return render(request, "daily_entries/alerts.html", {
         "alert_history": alert_history,
-        "technician_phone": technician_phone,
+        "technician_email": technician_email,
     })
+
 
 @login_required
 def live_monitoring(request):
     # Everyone logged in can see
     return render(request, "daily_entries/live.html")
 
-@permission_required('daily_entries.view_dailyentry', raise_exception=True)
 def all_alerts(request):
     # Viewer, Technician, Admin
     return render(request, "daily_entries/all.html")
@@ -265,4 +300,13 @@ def unacknowledged_alerts(request):
     # Technician + Admin only
     return render(request, "daily_entries/unack.html")
 
-
+@login_required
+@user_passes_test(lambda u: u.is_superuser, login_url="login", redirect_field_name=None)
+def users_list(request):
+    query = request.GET.get("q")
+    users = User.objects.all()
+    if query:
+        users = users.filter(
+            Q(username__icontains=query) | Q(email__icontains=query)
+        )
+    return render(request, "daily_entries/users.html", {"users": users})

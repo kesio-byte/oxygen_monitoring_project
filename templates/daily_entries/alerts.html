@@ -72,8 +72,9 @@
             </td>
             <td>
               {% if entry.critical_flag or entry.alert_status %}
-                <a href="tel:{{ technician_phone }}" class="font-semibold underline {% if entry.critical_flag %} text-red-700 {% else %} text-orange-700 {% endif %}">
-                  {{ technician_phone }}
+                <a href="mailto:{{ technician_email }}" 
+                  class="font-semibold underline {% if entry.critical_flag %} text-red-700 {% else %} text-orange-700 {% endif %}">
+                  {{ technician_email }}
                 </a>
 
                 {% if perms.daily_entries.change_dailyentry %}
@@ -86,7 +87,6 @@
                 <span class="text-gray-400 italic">—</span>
               {% endif %}
             </td>
-
             <td>
               {% if entry.notes %}
                 <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full">{{ entry.notes }}</span>

@@ -11,18 +11,31 @@ function loadAlerts() {
       const alertBox = document.querySelector("#alertsBox");
       if (!alertBox) return;
       alertBox.innerHTML = "";
+
+      if (!alerts || alerts.length === 0) {
+        alertBox.innerHTML = "<p class='text-gray-500'>No alerts at the moment.</p>";
+        return;
+      }
+
       alerts.forEach(a => {
         const div = document.createElement("div");
-        div.className = "p-2 mb-2 rounded " +
-          (a.level === "critical" ? "bg-red-100 border-l-4 border-red-500 text-red-700" :
-           a.level === "warning" ? "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700" :
-           "bg-green-100 border-l-4 border-green-500 text-green-700");
+        div.className =
+          "p-2 mb-2 rounded " +
+          (a.level === "critical"
+            ? "bg-red-100 border-l-4 border-red-500 text-red-700"
+            : a.level === "warning"
+            ? "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700"
+            : a.level === "info"
+            ? "bg-blue-100 border-l-4 border-blue-500 text-blue-700"
+            : "bg-green-100 border-l-4 border-green-500 text-green-700");
+
         div.textContent = a.message;
         alertBox.appendChild(div);
       });
     })
     .catch(err => console.error("Error loading alerts:", err));
 }
+
 
 // ---------------- Entries + Graph ----------------
 function loadEntries() {
@@ -63,27 +76,27 @@ function renderTable(entries) {
 
 function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
   const canvas = document.getElementById('weeklyGraph');
-  if (!canvas) return; // avoid null error
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
+
+  const datasets = [
+    { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
+    { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
+    { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
+    { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false },
+    // Threshold lines
+    { label: 'Safe Purity (93%)', data: Array(labels.length).fill(93), borderColor: 'blue', borderDash: [5,5], fill: false },
+    { label: 'Safe Pressure (4.5 bar)', data: Array(labels.length).fill(4.5), borderColor: 'red', borderDash: [5,5], fill: false }
+  ];
+
   if (weeklyChart) {
     weeklyChart.data.labels = labels;
-    weeklyChart.data.datasets[0].data = purityData;
-    weeklyChart.data.datasets[1].data = pressureData;
-    weeklyChart.data.datasets[2].data = flowRateData;
-    weeklyChart.data.datasets[3].data = pdpData;
+    weeklyChart.data.datasets = datasets;
     weeklyChart.update();
   } else {
     weeklyChart = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
-          { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
-          { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
-          { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false }
-        ]
-      },
+      data: { labels: labels, datasets: datasets },
       options: {
         responsive: true,
         plugins: {
@@ -94,6 +107,7 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
     });
   }
 }
+
 
 // ---------------- DOM Ready ----------------
 document.addEventListener("DOMContentLoaded", () => {

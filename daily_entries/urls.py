@@ -20,5 +20,8 @@ urlpatterns = [
     path('alerts/', alerts_page, name='alerts_page'),        # ✅ alerts page
     path("alerts/ack/<int:entry_id>/", views.update_ack, name="update_ack"),
     path("unacknowledged/", views.unacknowledged_alerts, name="unacknowledged_alerts"),
-  
+    path("users/", views.users_list, name="users_list"),
+    path("users/<int:user_id>/roles/", views.manage_roles, name="manage_roles"),
+    path("register/", views.register, name="register"),
+
 ]

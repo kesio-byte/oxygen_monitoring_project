@@ -4,7 +4,6 @@
 <head>
     <meta charset="UTF-8">
     <title>{% block title %}Hospital Oxygen Monitoring{% endblock %}</title>
-    <!-- Local JS -->
     <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Google Fonts -->
@@ -15,15 +14,27 @@
     <!-- Navbar -->
     <nav class="bg-blue-600 text-white px-6 py-4 fixed top-0 left-0 right-0 z-50">
         <div class="flex justify-between items-center">
+            <!-- Title -->
             <div class="font-bold">Hospital Oxygen Monitoring System</div>
+
             <!-- Desktop links -->
             <div class="hidden md:flex space-x-2">
                 <a href="/" class="px-3 py-2 rounded {% if request.path == '/' %}bg-blue-800 font-semibold{% endif %}">Home</a>
                 <a href="/daily_entries/" class="px-3 py-2 rounded {% if '/daily_entries' in request.path %}bg-blue-800 font-semibold{% endif %}">Daily Entry</a>
                 <a href="/weekly_records/" class="px-3 py-2 rounded {% if '/weekly_records' in request.path %}bg-blue-800 font-semibold{% endif %}">Weekly Records</a>
                 <a href="/alerts/" class="px-3 py-2 rounded {% if '/alerts' in request.path %}bg-blue-800 font-semibold{% endif %}">Alerts</a>
-                <a href="/users/" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">User Management</a>
+
+                {% if user.is_superuser %}
+                    <a href="/users/" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">User Management</a>
+                {% endif %}
+
+                {% if user.is_authenticated %}
+                    <a href="{% url 'logout' %}" class="px-3 py-2 rounded hover:bg-blue-800 font-semibold">Logout</a>
+                {% else %}
+                    <a href="{% url 'login' %}" class="px-3 py-2 rounded hover:bg-blue-800 font-semibold">Login</a>
+                {% endif %}
             </div>
+
             <!-- Mobile hamburger -->
             <div class="md:hidden">
                 <button id="menu-btn" class="focus:outline-none">
@@ -34,32 +45,58 @@
                 </button>
             </div>
         </div>
+
         <!-- Mobile menu -->
         <div id="mobile-menu" class="hidden flex-col space-y-2 mt-4 md:hidden">
             <a href="/" class="px-3 py-2 rounded {% if request.path == '/' %}bg-blue-800 font-semibold{% endif %}">Home</a>
             <a href="/daily_entries/" class="px-3 py-2 rounded {% if '/daily_entries' in request.path %}bg-blue-800 font-semibold{% endif %}">Daily Entry</a>
             <a href="/weekly_records/" class="px-3 py-2 rounded {% if '/weekly_records' in request.path %}bg-blue-800 font-semibold{% endif %}">Weekly Records</a>
             <a href="/alerts/" class="px-3 py-2 rounded {% if '/alerts' in request.path %}bg-blue-800 font-semibold{% endif %}">Alerts</a>
-            <a href="/users/" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">User Management</a>
+
+            {% if user.is_superuser %}
+                <a href="/users/" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">User Management</a>
+            {% endif %}
+
+            {% if user.is_authenticated %}
+                <a href="{% url 'logout' %}" class="px-3 py-2 rounded hover:bg-blue-800 font-semibold">Logout</a>
+            {% else %}
+                <a href="{% url 'login' %}" class="px-3 py-2 rounded hover:bg-blue-800 font-semibold">Login</a>
+            {% endif %}
         </div>
     </nav>
 
-    <!-- Messages + Main Content -->
-    <main class="flex-grow container mx-auto py-8 px-6 mt-24 mb-20">
-        {% if messages %}
-            <div class="space-y-2 mb-4">
-                {% for message in messages %}
-                    <div class="
-                        {% if message.tags == 'success' %} bg-green-100 text-green-800 border border-green-300 {% endif %}
-                        {% if message.tags == 'error' %} bg-red-100 text-red-800 border border-red-300 {% endif %}
-                        px-4 py-2 rounded
-                    ">
-                        {{ message }}
-                    </div>
-                {% endfor %}
+    <!-- Toast Messages -->
+    {% if messages %}
+    <div id="toast-container" class="fixed top-4 right-4 space-y-2 z-50">
+        {% for message in messages %}
+            <div class="toast relative flex items-center px-4 py-3 rounded shadow-lg transition-opacity duration-500
+                {% if message.tags == 'success' %}
+                    bg-green-100 text-green-800 border border-green-300
+                {% elif message.tags == 'error' %}
+                    bg-red-100 text-red-800 border border-red-300
+                {% elif message.tags == 'warning' %}
+                    bg-yellow-100 text-yellow-800 border border-yellow-300
+                {% else %}
+                    bg-gray-100 text-gray-800 border border-gray-300
+                {% endif %}
+            ">
+                <span class="mr-2">
+                    {% if message.tags == 'success' %}✔️
+                    {% elif message.tags == 'error' %}❌
+                    {% elif message.tags == 'warning' %}⚠️
+                    {% else %}ℹ️
+                    {% endif %}
+                </span>
+                <span>{{ message }}</span>
+                <button class="absolute top-1 right-2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        onclick="this.parentElement.remove()">&times;</button>
             </div>
-        {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
 
+    <!-- Main Content -->
+    <main class="flex-grow container mx-auto py-8 px-6 mt-24 mb-20">
         {% block content %}{% endblock %}
     </main>
 
@@ -68,13 +105,7 @@
         <p>Hospital IT Support | Version 1.0.0</p>
     </footer>
 
-    <!-- Mobile menu toggle script -->
-    <script>
-        const menuBtn = document.getElementById('menu-btn');
-        const mobileMenu = document.getElementById('mobile-menu');
-        menuBtn.addEventListener('click', () => {
-            mobileMenu.classList.toggle('hidden');
-        });
-    </script>
+    <!-- Scripts -->
+    <script src="{% static 'daily_entries/app.js' %}"></script>
 </body>
 </html>

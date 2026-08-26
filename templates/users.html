@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto py-8 px-6">
+    <h1 class="text-2xl font-bold text-blue-600 mb-6">Registered Users</h1>
+
+    <!-- Search form -->
+    <form method="get" class="mb-4 flex space-x-2">
+        <input type="text" name="q" value="{{ request.GET.q }}" 
+               placeholder="Search by username or email"
+               class="flex-grow px-3 py-2 border rounded focus:outline-none focus:ring focus:border-blue-300">
+        <button type="submit" 
+                class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+            Search
+        </button>
+        <a href="{% url 'users_list' %}" 
+           class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+            Clear
+        </a>
+    </form>
+
+    <div class="overflow-x-auto bg-white shadow rounded-lg">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date Joined</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roles</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+                {% for user in users %}
+                <tr class="hover:bg-gray-100">
+                    <td class="px-6 py-4 text-sm text-gray-900">{{ user.username }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ user.email }}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">{{ user.date_joined|date:"Y-m-d" }}</td>
+                    <td class="px-6 py-4 text-sm">
+                        {% for group in user.groups.all %}
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold
+                                {% if group.name == 'Admin' %}
+                                    bg-red-100 text-red-700
+                                {% elif group.name == 'Technician' %}
+                                    bg-yellow-100 text-yellow-700
+                                {% elif group.name == 'Viewer' %}
+                                    bg-green-100 text-green-700
+                                {% else %}
+                                    bg-gray-100 text-gray-700
+                                {% endif %}
+                            ">
+                                {{ group.name }}
+                            </span>
+                        {% empty %}
+                            <span class="text-gray-400">No role</span>
+                        {% endfor %}
+                    </td>
+                    <td class="px-6 py-4 text-sm">
+                        <a href="{% url 'manage_roles' user.id %}" 
+                           class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs">
+                            Manage Roles
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">No users found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

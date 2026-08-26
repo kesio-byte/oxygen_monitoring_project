@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mx-auto py-8 px-6">
+    <h1 class="text-2xl font-bold text-blue-600 mb-6">Register New User</h1>
+
+    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
+        {% csrf_token %}
+        {{ form.as_p }}
+
+        <div class="flex space-x-2">
+            <button type="submit" 
+                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                Create Account
+            </button>
+            <a href="{% url 'users_list' %}" 
+               class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}
