@@ -54,6 +54,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'daily_entries.context_processors.admin_status',  # Context processor to check if the user is an admin
             ],
         },
     },

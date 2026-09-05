@@ -22,10 +22,11 @@
   <!-- Tab Content -->
   <div id="tab-live" class="mt-6 hidden">
     <h2 class="text-xl font-semibold mb-4">Live Monitoring</h2>
-    <div id="alertsBox" class="space-y-2">
-      <p class="text-gray-500">Loading alerts...</p>
+    <div id="liveBox" class="space-y-2">
+      <p class="text-gray-500">Loading latest oxygen data...</p>
     </div>
-  </div>
+</div>
+
 
   <div id="tab-all" class="mt-6 hidden">
     <h2 class="text-xl font-semibold mb-4">All Alerts</h2>
@@ -117,4 +118,6 @@
 
   <!-- Load external JS -->
   <script src="{% static 'daily_entries/alerts.js' %}"></script>
+  <script src="{% static 'daily_entries/dashboard.js' %}"></script>
+
 {% endblock %}

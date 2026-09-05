@@ -25,10 +25,7 @@ function loadAlerts() {
             ? "bg-red-100 border-l-4 border-red-500 text-red-700"
             : a.level === "warning"
             ? "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700"
-            : a.level === "info"
-            ? "bg-blue-100 border-l-4 border-blue-500 text-blue-700"
             : "bg-green-100 border-l-4 border-green-500 text-green-700");
-
         div.textContent = a.message;
         alertBox.appendChild(div);
       });
@@ -36,6 +33,51 @@ function loadAlerts() {
     .catch(err => console.error("Error loading alerts:", err));
 }
 
+// ---------------- Live Monitoring ----------------
+function loadLiveData() {
+  fetch("/daily_entries/api/live/")
+    .then(res => res.json())
+    .then(data => {
+      const box = document.querySelector("#liveBox");
+      if (!box) return;
+
+      if (data.error) {
+        box.innerHTML = `<p class="text-gray-500">No live data available</p>`;
+        return;
+      }
+
+      // Threshold-based coloring
+      const purityClass = parseFloat(data.oxygen_purity) < 90 ? "text-red-600 font-bold" : "text-green-600";
+      const pressureClass = parseFloat(data.pressure) < 4.0 ? "text-orange-600 font-bold" : "text-green-600";
+      const flowClass = parseFloat(data.flow_rate) < 3.0 ? "text-orange-600 font-bold" : "text-green-600";
+      const pdpClass = parseFloat(data.pdp) > -50 ? "text-red-600 font-bold" : "text-green-600";
+      const statusClass = data.critical_flag ? "bg-red-100 text-red-700 font-bold px-2 py-1 rounded" : "bg-green-100 text-green-700 font-bold px-2 py-1 rounded";
+      const statusText = data.critical_flag ? "❌ Critical" : "✅ Normal";
+      const emailInfo = data.email_sent
+        ? '<span class="text-blue-600 font-semibold"> Email has been sent to the technician</span>'
+        : '';
+
+      box.innerHTML = `
+  <div class="border border-gray-300 rounded shadow-md">
+    <table class="table-auto w-full text-sm text-gray-700">
+      <tbody>
+        <tr><th class="px-4 py-2 text-left">Technician</th><td class="px-4 py-2">${data.operator}</td></tr>
+        <tr><th class="px-4 py-2 text-left">Date</th><td class="px-4 py-2">${data.date}</td></tr>
+        <tr><th class="px-4 py-2 text-left">Time</th><td class="px-4 py-2">${data.time}</td></tr>
+        <tr><th class="px-4 py-2 text-left">Oxygen Purity</th><td class="px-4 py-2">${data.oxygen_purity}%</td></tr>
+        <tr><th class="px-4 py-2 text-left">Pressure</th><td class="px-4 py-2">${data.pressure} bar</td></tr>
+        <tr><th class="px-4 py-2 text-left">Flow Rate</th><td class="px-4 py-2">${data.flow_rate} L/min</td></tr>
+        <tr><th class="px-4 py-2 text-left">PDP</th><td class="px-4 py-2">${data.pdp} °C</td></tr>
+        <tr><th class="px-4 py-2 text-left">Status</th><td class="px-4 py-2 ${statusClass}">${statusText}</td></tr>
+        <tr><th class="px-4 py-2 text-left">Alert</th><td class="px-4 py-2">${emailInfo}</td></tr>
+      </tbody>
+    </table>
+  </div>
+`;
+
+    })
+    .catch(err => console.error("Error loading live data:", err));
+}
 
 // ---------------- Entries + Graph ----------------
 function loadEntries() {
@@ -79,24 +121,25 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const datasets = [
-    { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
-    { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
-    { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
-    { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false },
-    // Threshold lines
-    { label: 'Safe Purity (93%)', data: Array(labels.length).fill(93), borderColor: 'blue', borderDash: [5,5], fill: false },
-    { label: 'Safe Pressure (4.5 bar)', data: Array(labels.length).fill(4.5), borderColor: 'red', borderDash: [5,5], fill: false }
-  ];
-
   if (weeklyChart) {
     weeklyChart.data.labels = labels;
-    weeklyChart.data.datasets = datasets;
+    weeklyChart.data.datasets[0].data = purityData;
+    weeklyChart.data.datasets[1].data = pressureData;
+    weeklyChart.data.datasets[2].data = flowRateData;
+    weeklyChart.data.datasets[3].data = pdpData;
     weeklyChart.update();
   } else {
     weeklyChart = new Chart(ctx, {
       type: 'line',
-      data: { labels: labels, datasets: datasets },
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
+          { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
+          { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
+          { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false }
+        ]
+      },
       options: {
         responsive: true,
         plugins: {
@@ -108,10 +151,11 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
   }
 }
 
-
 // ---------------- DOM Ready ----------------
 document.addEventListener("DOMContentLoaded", () => {
   loadAlerts();
   setInterval(loadAlerts, 30000); // refresh alerts every 30s
   loadEntries();
+  loadLiveData();
+  setInterval(loadLiveData, 5000); // refresh live data every 5s
 });

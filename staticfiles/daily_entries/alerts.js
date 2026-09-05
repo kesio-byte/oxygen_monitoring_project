@@ -19,6 +19,8 @@ function loadAlerts() {
             ? "bg-red-100 border-l-4 border-red-500 text-red-700"
             : alert.level === "warning"
             ? "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700"
+            : alert.level === "info"
+            ? "bg-blue-100 border-l-4 border-blue-500 text-blue-700"
             : "bg-green-100 border-l-4 border-green-500 text-green-700");
 
         div.textContent = alert.message;
@@ -50,6 +52,9 @@ function updateAck(entryId, checked) {
     .then(data => {
       if (!data.success) {
         alert("Failed to update technician acknowledgment");
+      } else {
+        // Refresh unacknowledged tab immediately
+        refreshUnack();
       }
     })
     .catch(err => {
@@ -63,64 +68,47 @@ window.filterAlerts = function(mode) {
   rows.forEach(row => {
     const checkbox = row.querySelector("input[type='checkbox']");
     if (mode === "unack") {
-      // Show only rows with unchecked boxes
       if (checkbox && !checkbox.checked) {
         row.style.display = "";
       } else {
         row.style.display = "none";
       }
     } else {
-      // Show all rows
       row.style.display = "";
     }
   });
 };
+
 // Tab switcher
 window.showTab = function(tab) {
-  // Hide all tabs
   document.getElementById("tab-live").classList.add("hidden");
   document.getElementById("tab-all").classList.add("hidden");
   document.getElementById("tab-unack").classList.add("hidden");
 
-  // Show the selected tab
   document.getElementById("tab-" + tab).classList.remove("hidden");
 
-  // Special case: Unacknowledged tab
   if (tab === "unack") {
     refreshUnack();
   }
 };
 
-window.showTab = function(tab) {
-  // Hide all tabs
-  document.getElementById("tab-live").classList.add("hidden");
-  document.getElementById("tab-all").classList.add("hidden");
-  document.getElementById("tab-unack").classList.add("hidden");
-
-  // Show the selected tab
-  document.getElementById("tab-" + tab).classList.remove("hidden");
-
-  // Special case: Unacknowledged tab
-  if (tab === "unack") {
-    refreshUnack();
-  }
-};
-
+// Refresh Unacknowledged tab
 window.refreshUnack = function() {
   const allRows = document.querySelectorAll("#tab-all tbody tr");
   const unackTable = document.getElementById("unackTable");
-  unackTable.innerHTML = ""; // clear previous
+  unackTable.innerHTML = "";
 
-  // Build a new table
+  const header = document.createElement("h3");
+  header.textContent = "Technician Alerts Pending Acknowledgment";
+  header.className = "text-lg font-semibold mb-2";
+  unackTable.appendChild(header);
+
   const table = document.createElement("table");
   table.className = "min-w-full table-fixed border border-gray-300";
-
-  // Copy headers from All Alerts
   table.innerHTML = document.querySelector("#tab-all table thead").outerHTML + "<tbody></tbody>";
 
   const tbody = table.querySelector("tbody");
 
-  // Keep only rows where technician_ack is false (checkbox not checked)
   allRows.forEach(row => {
     const checkbox = row.querySelector("input[type='checkbox']");
     if (checkbox && !checkbox.checked) {
@@ -128,7 +116,6 @@ window.refreshUnack = function() {
     }
   });
 
-  // If none found
   if (tbody.children.length === 0) {
     const tr = document.createElement("tr");
     tr.innerHTML = `<td colspan="10" class="text-gray-500 text-center">No unacknowledged alerts</td>`;

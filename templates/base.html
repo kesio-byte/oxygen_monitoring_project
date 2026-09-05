@@ -24,8 +24,10 @@
                 <a href="/weekly_records/" class="px-3 py-2 rounded {% if '/weekly_records' in request.path %}bg-blue-800 font-semibold{% endif %}">Weekly Records</a>
                 <a href="/alerts/" class="px-3 py-2 rounded {% if '/alerts' in request.path %}bg-blue-800 font-semibold{% endif %}">Alerts</a>
 
-                {% if user.is_superuser %}
-                    <a href="/users/" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">User Management</a>
+                {% if is_admin %}
+                    <a href="{% url 'users_list' %}" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">
+                        User Management
+                    </a>
                 {% endif %}
 
                 {% if user.is_authenticated %}
@@ -53,8 +55,10 @@
             <a href="/weekly_records/" class="px-3 py-2 rounded {% if '/weekly_records' in request.path %}bg-blue-800 font-semibold{% endif %}">Weekly Records</a>
             <a href="/alerts/" class="px-3 py-2 rounded {% if '/alerts' in request.path %}bg-blue-800 font-semibold{% endif %}">Alerts</a>
 
-            {% if user.is_superuser %}
-                <a href="/users/" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">User Management</a>
+            {% if is_admin %}
+                <a href="{% url 'users_list' %}" class="px-3 py-2 rounded {% if '/users' in request.path %}bg-blue-800 font-semibold{% endif %}">
+                    User Management
+                </a>
             {% endif %}
 
             {% if user.is_authenticated %}
