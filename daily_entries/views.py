@@ -251,7 +251,6 @@ def alerts_page(request):
     alert_history = DailyEntry.objects.order_by("-date", "-time")[:50]
     return render(request, "daily_entries/alerts.html", {"alert_history": alert_history})
 
-
 def live_monitoring_api(request):
     latest = DailyEntry.objects.order_by("-date", "-time").first()
     if not latest:
@@ -273,27 +272,27 @@ def live_monitoring_api(request):
         alert_message = f"⚠️ PDP critically high ({latest.pdp:.1f} °C)"
         critical_flag = True
 
-    # 🚨 Try sending email but don’t block JSON
+    # 🚨 Send email asynchronously or fail silently
     if critical_flag and alert_message:
         try:
             send_mail(
                 subject="Hospital Oxygen Monitoring Alert",
                 message=alert_message,
                 from_email=os.getenv("EMAIL_HOST_USER"),
-                recipient_list=["technician@example.com"],
-                fail_silently=False,
+                recipient_list=["kesiomtewacolllins@zohomail.com"],
+                fail_silently=True,  # don’t block JSON
             )
         except Exception as e:
             print("Email error:", e)
+
     return JsonResponse({
         "date": str(latest.date),
         "time": str(latest.time),
         "operator": latest.operator.username if latest.operator else "—",
-        "oxygen_purity": latest.oxygen_purity,
-        "pressure": latest.pressure,
-        "flow_rate": latest.flow_rate,
-        "pdp": latest.pdp,
+        "oxygen_purity": float(latest.oxygen_purity),
+        "pressure": float(latest.pressure),
+        "flow_rate": float(latest.flow_rate),
+        "pdp": float(latest.pdp),
         "critical_flag": critical_flag,
-        "email_sent": True if (critical_flag and alert_message) else False,
-})
-
+        "email_sent": bool(critical_flag and alert_message),
+    })

@@ -8,16 +8,13 @@
   <h1 class="text-2xl font-bold mb-4">System Alerts</h1>
 
   <!-- Three Buttons -->
- <div class="flex justify-center space-x-4 mt-6">
-  <button onclick="showTab('live')" class="px-4 py-2 bg-blue-600 text-white rounded">Live Monitoring</button>
-  <button onclick="showTab('all')" class="px-4 py-2 bg-green-600 text-white rounded">All Alerts</button>
-
-  {% if perms.daily_entries.change_dailyentry %}
-    <button onclick="showTab('unack')" class="px-4 py-2 bg-red-600 text-white rounded">Unacknowledged</button>
-{% endif %}
-
-
-</div>
+  <div class="flex justify-center space-x-4 mt-6">
+    <button onclick="showTab('live')" class="px-4 py-2 bg-blue-600 text-white rounded">Live Monitoring</button>
+    <button onclick="showTab('all')" class="px-4 py-2 bg-green-600 text-white rounded">All Alerts</button>
+    {% if perms.daily_entries.change_dailyentry %}
+      <button onclick="showTab('unack')" class="px-4 py-2 bg-red-600 text-white rounded">Unacknowledged</button>
+    {% endif %}
+  </div>
 
   <!-- Tab Content -->
   <div id="tab-live" class="mt-6 hidden">
@@ -25,26 +22,26 @@
     <div id="liveBox" class="space-y-2">
       <p class="text-gray-500">Loading latest oxygen data...</p>
     </div>
-</div>
-
+  </div>
 
   <div id="tab-all" class="mt-6 hidden">
     <h2 class="text-xl font-semibold mb-4">All Alerts</h2>
-    <!-- History Table -->
-    <div class="overflow-x-auto max-h-96">
-      <table class="min-w-full table-fixed border border-gray-300">
+
+    <!-- Desktop Table -->
+    <div class="overflow-x-auto max-h-96 hidden md:block">
+      <table class="min-w-full border border-gray-300 text-sm sm:text-base">
         <thead class="bg-gray-100 sticky top-0 z-10">
           <tr>
-            <th>Date</th>
-            <th>Time</th>
-            <th>Operator</th>
-            <th>Purity (%)</th>
-            <th>Pressure (bar)</th>
-            <th>Flow Rate (L/min)</th>
-            <th>PDP</th>
-            <th>Severity</th>
-            <th>Technician</th>
-            <th>Notes</th>
+            <th class="w-32 px-2 py-1 text-left">Date</th>
+            <th class="w-24 px-2 py-1 text-left">Time</th>
+            <th class="w-32 px-2 py-1 text-left">Operator</th>
+            <th class="w-24 px-2 py-1 text-right">Purity (%)</th>
+            <th class="w-28 px-2 py-1 text-right">Pressure (bar)</th>
+            <th class="w-32 px-2 py-1 text-right">Flow Rate (L/min)</th>
+            <th class="w-20 px-2 py-1 text-right">PDP</th>
+            <th class="w-28 px-2 py-1 text-center">Severity</th>
+            <th class="w-40 px-2 py-1 text-center">Technician</th>
+            <th class="w-40 px-2 py-1 text-left">Notes</th>
           </tr>
         </thead>
         <tbody>
@@ -55,14 +52,14 @@
               {% else %} bg-green-50
               {% endif %}
               hover:bg-gray-50">
-            <td>{{ entry.date|date:"M d, Y" }}</td>
-            <td>{{ entry.time|time:"g:i a" }}</td>
-            <td>{{ entry.operator }}</td>
-            <td>{{ entry.oxygen_purity }}</td>
-            <td>{{ entry.pressure }}</td>
-            <td>{{ entry.flow_rate }}</td>
-            <td>{{ entry.pdp }}</td>
-            <td>
+            <td class="px-2 py-1 text-left">{{ entry.date|date:"M d, Y" }}</td>
+            <td class="px-2 py-1 text-left">{{ entry.time|time:"g:i a" }}</td>
+            <td class="px-2 py-1 text-left">{{ entry.operator }}</td>
+            <td class="px-2 py-1 text-right">{{ entry.oxygen_purity }}</td>
+            <td class="px-2 py-1 text-right">{{ entry.pressure }}</td>
+            <td class="px-2 py-1 text-right">{{ entry.flow_rate }}</td>
+            <td class="px-2 py-1 text-right">{{ entry.pdp }}</td>
+            <td class="px-2 py-1 text-center">
               {% if entry.critical_flag %}
                 <span class="px-2 py-1 text-xs font-semibold text-white bg-red-600 rounded-full">Critical</span>
               {% elif entry.alert_status %}
@@ -71,13 +68,12 @@
                 <span class="px-2 py-1 text-xs font-semibold text-white bg-green-600 rounded-full">Normal</span>
               {% endif %}
             </td>
-            <td>
+            <td class="px-2 py-1 text-center">
               {% if entry.critical_flag or entry.alert_status %}
                 <a href="mailto:{{ technician_email }}" 
                   class="font-semibold underline {% if entry.critical_flag %} text-red-700 {% else %} text-orange-700 {% endif %}">
                   {{ technician_email }}
                 </a>
-
                 {% if perms.daily_entries.change_dailyentry %}
                   <input type="checkbox"
                         {% if entry.technician_ack %}checked{% endif %}
@@ -88,7 +84,7 @@
                 <span class="text-gray-400 italic">—</span>
               {% endif %}
             </td>
-            <td>
+            <td class="px-2 py-1 text-left">
               {% if entry.notes %}
                 <span class="px-2 py-1 text-xs font-medium text-gray-800 bg-gray-200 rounded-full">{{ entry.notes }}</span>
               {% else %}
@@ -104,12 +100,56 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Mobile Card View -->
+    <div class="space-y-4 md:hidden">
+      {% for entry in alert_history %}
+      <div class="border border-gray-300 rounded-lg p-3 
+                  {% if entry.critical_flag %} bg-red-100
+                  {% elif entry.alert_status %} bg-yellow-100
+                  {% else %} bg-green-50
+                  {% endif %}">
+        <p><span class="font-semibold">Date:</span> {{ entry.date|date:"M d, Y" }}</p>
+        <p><span class="font-semibold">Time:</span> {{ entry.time|time:"g:i a" }}</p>
+        <p><span class="font-semibold">Operator:</span> {{ entry.operator }}</p>
+        <p><span class="font-semibold">Purity (%):</span> {{ entry.oxygen_purity }}</p>
+        <p><span class="font-semibold">Pressure (bar):</span> {{ entry.pressure }}</p>
+        <p><span class="font-semibold">Flow Rate (L/min):</span> {{ entry.flow_rate }}</p>
+        <p><span class="font-semibold">PDP:</span> {{ entry.pdp }}</p>
+        <p><span class="font-semibold">Severity:</span>
+          {% if entry.critical_flag %}
+            <span class="text-red-700 font-bold">Critical</span>
+          {% elif entry.alert_status %}
+            <span class="text-yellow-700 font-bold">Warning</span>
+          {% else %}
+            <span class="text-green-700 font-bold">Normal</span>
+          {% endif %}
+        </p>
+        <p><span class="font-semibold">Technician:</span>
+          {% if entry.critical_flag or entry.alert_status %}
+            {{ technician_email }}
+          {% else %}
+            <span class="text-gray-400 italic">—</span>
+          {% endif %}
+        </p>
+        <p><span class="font-semibold">Notes:</span>
+          {% if entry.notes %}
+            {{ entry.notes }}
+          {% else %}
+            <span class="text-gray-400 italic">—</span>
+          {% endif %}
+        </p>
+      </div>
+      {% empty %}
+      <p class="text-gray-500 text-center">No past entries</p>
+      {% endfor %}
+    </div>
   </div>
 
-<div id="tab-unack" class="mt-6 hidden">
-  <h2 class="text-xl font-semibold mb-4">Unacknowledged Alerts</h2>
-  <div id="unackTable"></div>
-</div>
+  <div id="tab-unack" class="mt-6 hidden">
+    <h2 class="text-xl font-semibold mb-4">Unacknowledged Alerts</h2>
+    <div id="unackTable"></div>
+  </div>
 
   <!-- CSRF token -->
   <script>
@@ -119,5 +159,4 @@
   <!-- Load external JS -->
   <script src="{% static 'daily_entries/alerts.js' %}"></script>
   <script src="{% static 'daily_entries/dashboard.js' %}"></script>
-
 {% endblock %}

@@ -153,9 +153,15 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
 
 // ---------------- DOM Ready ----------------
 document.addEventListener("DOMContentLoaded", () => {
+  // Load alerts once, then refresh every 30s
   loadAlerts();
-  setInterval(loadAlerts, 30000); // refresh alerts every 30s
+  setInterval(loadAlerts, 30000);
+
+  // Load entries once (no need to poll constantly)
   loadEntries();
+
+  // Load live data immediately, then refresh every 30s
   loadLiveData();
-  setInterval(loadLiveData, 5000); // refresh live data every 5s
+  setInterval(loadLiveData, 30000);
 });
+
