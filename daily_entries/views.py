@@ -137,29 +137,48 @@ def add_entry(request):
 # Weekly Dashboard
 # -------------------------
 
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
+from django.db.models import Avg
+from django.core.paginator import Paginator
+from django.contrib.auth.decorators import login_required
+from .models import DailyEntry
+import json
+
 @login_required
 def weekly_dashboard(request):
     today = timezone.now().date()
-    week_start = today - timedelta(days=7)
+    week_start = today - timedelta(days=30)  # last 30 days
 
-    # ✅ Order by created_at for newest-first
+    # ✅ Order newest-first
     entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-created_at")
 
+    # ✅ Pagination
     paginator = Paginator(entries_qs, 10)
     page_number = request.GET.get("page")
     entries = paginator.get_page(page_number)
 
+    # ✅ Averages
     avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
     avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"]
     avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"]
     avg_pdp = entries_qs.aggregate(Avg("pdp"))["pdp__avg"]
 
+    # ✅ Safety alerts
     SAFE_PURITY, SAFE_PRESSURE = 93.0, 4.5
     alerts = []
     if avg_purity and avg_purity < SAFE_PURITY:
         alerts.append(f"Oxygen purity averaged {avg_purity:.1f}% — below safe threshold.")
     if avg_pressure and avg_pressure < SAFE_PRESSURE:
         alerts.append(f"Pressure averaged {avg_pressure:.1f} bar — below safe threshold.")
+
+    # ✅ Chart.js JSON arrays (from full queryset, not paginated page)
+    labels_json = json.dumps([str(e.date) for e in entries_qs])
+    purity_json = json.dumps([float(e.oxygen_purity) for e in entries_qs])
+    pressure_json = json.dumps([float(e.pressure) for e in entries_qs])
+    flow_json = json.dumps([float(e.flow_rate) for e in entries_qs])
+    pdp_json = json.dumps([float(e.pdp) for e in entries_qs])
 
     context = {
         "entries": entries,
@@ -168,22 +187,13 @@ def weekly_dashboard(request):
         "avg_flow": avg_flow,
         "avg_pdp": avg_pdp,
         "alerts": alerts,
+        "labels_json": labels_json,
+        "purity_json": purity_json,
+        "pressure_json": pressure_json,
+        "flow_json": flow_json,
+        "pdp_json": pdp_json,
     }
     return render(request, "daily_entries/weekly_dashboard.html", context)
-
-
-# -------------------------
-# Alerts
-# -------------------------
-@login_required
-def alerts_page(request):
-    alert_history = DailyEntry.objects.order_by('-date', '-time')[:20]
-    technician_email = os.getenv("TECHNICIAN_EMAIL")
-    return render(request, "daily_entries/alerts.html", {
-        "alert_history": alert_history,
-        "technician_email": technician_email,
-    })
-
 
 def entries_api(request):
     entries = DailyEntry.objects.order_by().values(
