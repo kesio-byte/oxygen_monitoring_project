@@ -51,11 +51,19 @@ function renderTable(entries) {
   const tbody = document.querySelector("#entriesTableBody");
   if (!tbody) return;
   tbody.innerHTML = "";
+
+  entries.sort((a, b) => {
+    const dateA = new Date(`${a.date} ${a.time}`);
+    const dateB = new Date(`${b.date} ${b.time}`);
+    return dateB - dateA; // newest first
+  });
+
   entries.forEach(e => {
     const row = document.createElement("tr");
     row.className = "hover:bg-gray-50";
     row.innerHTML = `
       <td class="px-4 py-2">${e.date}</td>
+      <td class="px-4 py-2">${e.time}</td>
       <td class="px-4 py-2">${e.operator}</td>
       <td class="px-4 py-2">${e.oxygen_purity}</td>
       <td class="px-4 py-2">${e.pressure}</td>
@@ -65,6 +73,7 @@ function renderTable(entries) {
     tbody.appendChild(row);
   });
 }
+
 
 // Updated renderWeeklyGraph with persistent chart
 function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
@@ -112,11 +121,13 @@ function addRowToTable(entry) {
   row.className = "hover:bg-gray-50";
   row.innerHTML = `
     <td class="px-4 py-2">${entry.date}</td>
+    <td class="px-4 py-2">${entry.time}</td>
     <td class="px-4 py-2">${entry.operator}</td>
     <td class="px-4 py-2">${entry.oxygen_purity}</td>
     <td class="px-4 py-2">${entry.pressure}</td>
     <td class="px-4 py-2">${entry.flow_rate}</td>
     <td class="px-4 py-2">${entry.pdp}</td>
   `;
-  tbody.prepend(row); // newest first
+  tbody.prepend(row); // newest entry on top
 }
+

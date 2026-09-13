@@ -97,6 +97,7 @@ function loadEntries() {
     .catch(err => console.error("Error loading entries:", err));
 }
 
+// ---------------- Render table function -------------------
 function renderTable(entries) {
   const tbody = document.querySelector("#entriesTableBody");
   if (!tbody) return;
@@ -116,6 +117,7 @@ function renderTable(entries) {
   });
 }
 
+// ----------------Renderweeklygraph -------------------
 function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
   const canvas = document.getElementById('weeklyGraph');
   if (!canvas) return;

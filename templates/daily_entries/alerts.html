@@ -109,6 +109,7 @@
                   {% elif entry.alert_status %} bg-yellow-100
                   {% else %} bg-green-50
                   {% endif %}">
+                  
         <p><span class="font-semibold">Date:</span> {{ entry.date|date:"M d, Y" }}</p>
         <p><span class="font-semibold">Time:</span> {{ entry.time|time:"g:i a" }}</p>
         <p><span class="font-semibold">Operator:</span> {{ entry.operator }}</p>

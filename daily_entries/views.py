@@ -13,6 +13,7 @@ from django.core.mail import send_mail
 from .models import DailyEntry
 from .forms import DailyEntryForm, CustomUserCreationForm
 from alerts.utils import send_alert_email
+from daily_entries.models import DailyEntry
 
 # -------------------------
 # Home Page
@@ -93,6 +94,7 @@ def manage_roles(request, user_id):
 # -------------------------
 # Daily Entries
 # -------------------------
+
 @login_required
 def add_entry(request):
     if request.method == 'POST':
@@ -100,6 +102,12 @@ def add_entry(request):
         if form.is_valid():
             entry = form.save(commit=False)
             entry.operator = request.user
+
+            # ✅ Explicitly set local Malawi time
+            now = timezone.localtime(timezone.now())
+            entry.date = now.date()
+            entry.time = now.time().replace(second=0, microsecond=0)
+
             entry.save()
 
             # 🚨 Email trigger logic
@@ -119,16 +127,23 @@ def add_entry(request):
     else:
         form = DailyEntryForm()
 
-    return render(request, 'daily_entries/entry_form.html', {"form": form, "today": timezone.now().date()})
+    return render(request, 'daily_entries/entry_form.html', {
+        "form": form,
+        "today": timezone.localtime(timezone.now()).date()
+    })
+
 
 # -------------------------
 # Weekly Dashboard
 # -------------------------
+
 @login_required
 def weekly_dashboard(request):
     today = timezone.now().date()
     week_start = today - timedelta(days=7)
-    entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-date")
+
+    # ✅ Order by created_at for newest-first
+    entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-created_at")
 
     paginator = Paginator(entries_qs, 10)
     page_number = request.GET.get("page")
@@ -156,6 +171,7 @@ def weekly_dashboard(request):
     }
     return render(request, "daily_entries/weekly_dashboard.html", context)
 
+
 # -------------------------
 # Alerts
 # -------------------------
@@ -170,8 +186,7 @@ def alerts_page(request):
 
 
 def entries_api(request):
-    # Example: return all entries as JSON
-    entries = DailyEntry.objects.all().values(
+    entries = DailyEntry.objects.order_by().values(
         "id", "date", "time", "operator",
         "oxygen_purity", "pressure", "flow_rate", "pdp"
     )
@@ -246,6 +261,12 @@ def unacknowledged_alerts(request):
         "daily_entries/unacknowledged_alerts.html",
         {"alerts": alerts}
     )
+
+
+def daily_entries_list(request):
+    entries = DailyEntry.objects.all().order_by("-date", "-time")
+    return render(request, "daily_entries/list.html", {"entries": entries})
+
 
 def alerts_page(request):
     alert_history = DailyEntry.objects.order_by("-date", "-time")[:50]

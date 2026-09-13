@@ -1,15 +1,20 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+
+
+from django.utils import timezone
 
 class DailyEntry(models.Model):
     operator = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name='oxygen_entries'   # ✅ unique reverse accessor
+        related_name='oxygen_entries'
     )
-    date = models.DateField(auto_now_add=True, editable=False)
-    time = models.TimeField(auto_now_add=True, editable=False)
+    date = models.DateField()   # manual set
+    time = models.TimeField()   # manual set
+    created_at = models.DateTimeField(auto_now_add=True, editable=False)
 
     oxygen_purity = models.DecimalField(max_digits=5, decimal_places=2)  # %
     pressure = models.DecimalField(max_digits=6, decimal_places=2)       # bar/kPa
@@ -18,15 +23,25 @@ class DailyEntry(models.Model):
 
     notes = models.TextField(blank=True, null=True)
 
-    # Auto flags
     alert_status = models.BooleanField(default=False)
     critical_flag = models.BooleanField(default=False)
     technician_ack = models.BooleanField(default=False)
 
+    def save(self, *args, **kwargs):
+        # 🔹 Force local Malawi time
+        now = timezone.localtime(timezone.now())
+        if not self.date:
+            self.date = now.date()
+        if not self.time:
+            self.time = now.time()
+
+        super().save(*args, **kwargs)
+
+
     # ✅ Field-level validation methods
     def clean_oxygen_purity(self):
         if self.oxygen_purity < 0 or self.oxygen_purity > 100:
-            raise ValidationError("Oxygen purity must be between 0–100%.")
+            raise ValidationError("Oxygen purity must be between 0 – 100%.")
 
     def clean_pdp(self):
         if self.pdp > 0:

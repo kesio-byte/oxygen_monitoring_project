@@ -17,12 +17,19 @@ class DailyEntryForm(forms.ModelForm):
     class Meta:
         model = DailyEntry
         fields = ['oxygen_purity', 'pressure', 'flow_rate', 'pdp', 'notes']
-        # remove help_texts to avoid repetition
+        widgets = {
+            'oxygen_purity': forms.NumberInput(attrs={'step': '0.01'}),
+            'pressure': forms.NumberInput(attrs={'step': '0.01'}),
+            'flow_rate': forms.NumberInput(attrs={'step': '0.01'}),
+            'pdp': forms.NumberInput(attrs={'step': '0.01'}),
+            'notes': forms.Textarea(attrs={'rows': 3}),
+        }
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['oxygen_purity'].widget.attrs.update({
-            'placeholder': 'Enter oxygen purity (%) between 90–100%',
+            'placeholder': 'Enter oxygen purity (%) between 0–100%',
             'class': 'form-input w-full'
         })
         self.fields['pressure'].widget.attrs.update({
