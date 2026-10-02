@@ -31,7 +31,7 @@ urlpatterns = [
 
     # Apps
     path('daily_entries/', include('daily_entries.urls')),
-    path('weekly_records/', weekly_dashboard, name='weekly_records'),
+    #path('weekly_records/', weekly_dashboard, name='weekly_records'),
     path('alerts/', alerts_page, name='alerts_page'),
     path('users/', users_list, name='users_list'),
     

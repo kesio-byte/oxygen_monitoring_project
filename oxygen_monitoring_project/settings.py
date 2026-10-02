@@ -24,7 +24,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'daily_entries',
-    'weekly_records',
+    #'weekly_records',
    # 'alerts',
    # 'users',
     #'core',
