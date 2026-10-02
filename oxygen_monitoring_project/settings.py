@@ -27,7 +27,7 @@ INSTALLED_APPS = [
     'weekly_records',
    # 'alerts',
    # 'users',
-    'core',
+    #'core',
     "widget_tweaks",
 ]
 

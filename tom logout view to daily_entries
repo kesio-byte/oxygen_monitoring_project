@@ -1,0 +1,129 @@
+[1mdiff --git a/core/__init__.py b/core/__init__.py[m
+[1mdeleted file mode 100644[m
+[1mindex e69de29..0000000[m
+[1mdiff --git a/core/admin.py b/core/admin.py[m
+[1mdeleted file mode 100644[m
+[1mindex 8c38f3f..0000000[m
+[1m--- a/core/admin.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,3 +0,0 @@[m
+[31m-from django.contrib import admin[m
+[31m-[m
+[31m-# Register your models here.[m
+[1mdiff --git a/core/apps.py b/core/apps.py[m
+[1mdeleted file mode 100644[m
+[1mindex 8115ae6..0000000[m
+[1m--- a/core/apps.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,6 +0,0 @@[m
+[31m-from django.apps import AppConfig[m
+[31m-[m
+[31m-[m
+[31m-class CoreConfig(AppConfig):[m
+[31m-    default_auto_field = 'django.db.models.BigAutoField'[m
+[31m-    name = 'core'[m
+[1mdiff --git a/core/migrations/__init__.py b/core/migrations/__init__.py[m
+[1mdeleted file mode 100644[m
+[1mindex e69de29..0000000[m
+[1mdiff --git a/core/models.py b/core/models.py[m
+[1mdeleted file mode 100644[m
+[1mindex 71a8362..0000000[m
+[1m--- a/core/models.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,3 +0,0 @@[m
+[31m-from django.db import models[m
+[31m-[m
+[31m-# Create your models here.[m
+[1mdiff --git a/core/tests.py b/core/tests.py[m
+[1mdeleted file mode 100644[m
+[1mindex 7ce503c..0000000[m
+[1m--- a/core/tests.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,3 +0,0 @@[m
+[31m-from django.test import TestCase[m
+[31m-[m
+[31m-# Create your tests here.[m
+[1mdiff --git a/core/views.py b/core/views.py[m
+[1mdeleted file mode 100644[m
+[1mindex 1ca3506..0000000[m
+[1m--- a/core/views.py[m
+[1m+++ /dev/null[m
+[36m@@ -1,15 +0,0 @@[m
+[31m-from django.contrib.auth.views import LogoutView[m
+[31m-from django.shortcuts import render[m
+[31m-[m
+[31m-def homepage(request):[m
+[31m-    return render(request, 'daily_entries/homepage.html')[m
+[31m-[m
+[31m-class CustomLogoutView(LogoutView):[m
+[31m-    next_page = "login"[m
+[31m-[m
+[31m-    # explicitly allow GET requests[m
+[31m-    http_method_names = ["get", "post", "head", "options"][m
+[31m-[m
+[31m-    def get(self, request, *args, **kwargs):[m
+[31m-        # Treat GET like POST[m
+[31m-        return super().post(request, *args, **kwargs)[m
+[1mdiff --git a/daily_entries/views.py b/daily_entries/views.py[m
+[1mindex 2ceb916..241c2b4 100644[m
+[1m--- a/daily_entries/views.py[m
+[1m+++ b/daily_entries/views.py[m
+[36m@@ -16,6 +16,7 @@[m [mfrom django.views.decorators.http import require_POST[m
+ from .email_utils import send_alert_email[m
+ from .forms import DailyEntryForm, CustomUserCreationForm[m
+ from .models import DailyEntry[m
+[32m+[m[32mfrom django.contrib.auth.views import LogoutView[m
+ [m
+ [m
+ # -------------------------[m
+[36m@@ -528,4 +529,13 @@[m [mdef alerts_api(request):[m
+         "page": page_obj.number,[m
+         "num_pages": paginator.num_pages,[m
+         "total_unack": paginator.count,[m
+[31m-    })[m
+\ No newline at end of file[m
+[32m+[m[32m    })[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass CustomLogoutView(LogoutView):[m
+[32m+[m[32m    next_page = "login"[m
+[32m+[m[32m    http_method_names = ["get", "post", "head", "options"][m
+[32m+[m
+[32m+[m[32m    def get(self, request, *args, **kwargs):[m
+[32m+[m[32m        return super().post(request, *args, **kwargs)[m
+\ No newline at end of file[m
+[1mdiff --git a/oxygen_monitoring_project/settings.py b/oxygen_monitoring_project/settings.py[m
+[1mindex 660c6d3..89068b6 100644[m
+[1m--- a/oxygen_monitoring_project/settings.py[m
+[1m+++ b/oxygen_monitoring_project/settings.py[m
+[36m@@ -27,7 +27,7 @@[m [mINSTALLED_APPS = [[m
+     'weekly_records',[m
+    # 'alerts',[m
+    # 'users',[m
+[31m-    'core',[m
+[32m+[m[32m    #'core',[m
+     "widget_tweaks",[m
+ ][m
+ [m
+[1mdiff --git a/oxygen_monitoring_project/urls.py b/oxygen_monitoring_project/urls.py[m
+[1mindex cbff03e..330f532 100644[m
+[1m--- a/oxygen_monitoring_project/urls.py[m
+[1m+++ b/oxygen_monitoring_project/urls.py[m
+[36m@@ -2,9 +2,13 @@[m [mfrom django.contrib import admin[m
+ from django.urls import path, include[m
+ from django.contrib.auth import views as auth_views[m
+ from daily_entries.views import home, weekly_dashboard, alerts_page, users_list[m
+[31m-from core.views import CustomLogoutView   # keep your custom logout view[m
+[31m-[m
+[31m-[m
+[32m+[m[32mfrom daily_entries.views import ([m
+[32m+[m[32m    home,[m
+[32m+[m[32m    weekly_dashboard,[m
+[32m+[m[32m    alerts_page,[m
+[32m+[m[32m    users_list,[m
+[32m+[m[32m    CustomLogoutView,[m
+[32m+[m[32m)[m
+ [m
+ urlpatterns = [[m
+     # Admin[m

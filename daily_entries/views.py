@@ -16,6 +16,7 @@ from django.views.decorators.http import require_POST
 from .email_utils import send_alert_email
 from .forms import DailyEntryForm, CustomUserCreationForm
 from .models import DailyEntry
+from django.contrib.auth.views import LogoutView
 
 
 # -------------------------
@@ -529,3 +530,12 @@ def alerts_api(request):
         "num_pages": paginator.num_pages,
         "total_unack": paginator.count,
     })
+
+
+
+class CustomLogoutView(LogoutView):
+    next_page = "login"
+    http_method_names = ["get", "post", "head", "options"]
+
+    def get(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)

@@ -2,9 +2,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.auth import views as auth_views
 from daily_entries.views import home, weekly_dashboard, alerts_page, users_list
-from core.views import CustomLogoutView   # keep your custom logout view
-
-
+from daily_entries.views import (
+    home,
+    weekly_dashboard,
+    alerts_page,
+    users_list,
+    CustomLogoutView,
+)
 
 urlpatterns = [
     # Admin
