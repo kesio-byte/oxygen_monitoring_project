@@ -5,6 +5,7 @@ from daily_entries.views import home, weekly_dashboard, alerts_page, users_list
 from core.views import CustomLogoutView   # keep your custom logout view
 
 
+
 urlpatterns = [
     # Admin
     path('admin/', admin.site.urls),
@@ -29,4 +30,5 @@ urlpatterns = [
     path('weekly_records/', weekly_dashboard, name='weekly_records'),
     path('alerts/', alerts_page, name='alerts_page'),
     path('users/', users_list, name='users_list'),
+    
 ]

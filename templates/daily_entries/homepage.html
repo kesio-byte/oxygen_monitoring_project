@@ -4,30 +4,94 @@
 {% block title %}Hospital Oxygen Monitoring Dashboard{% endblock %}
 
 {% block content %}
-  <h1 class="text-3xl font-bold mb-4">Hospital Oxygen Monitoring Dashboard</h1>
-  <p class="mb-8 text-gray-700">A digital solution to record, monitor, and alert on oxygen supply parameters.</p>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  
+  <!-- Header Section -->
+  <div class="mb-8">
+    <h1 class="text-3xl font-extrabold text-gray-900 tracking-tight sm:text-4xl">
+      Hospital Oxygen Monitoring System
+    </h1>
+    <p class="mt-2 text-base text-gray-600 sm:text-lg">
+      Real-time biomedical equipment tracking, alert escalation, and compliance monitoring.
+    </p>
+  </div>
 
   <!-- Action Cards -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <a href="/daily_entries/" class="bg-white shadow-md rounded-lg p-6 text-center hover:bg-blue-50">
-      Enter Today’s Values
+    
+    <!-- Record Entry Card -->
+    <a href="{% url 'daily_entry_form' %}" 
+       class="group bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-500 transition-all duration-150">
+      <div class="flex items-center space-x-4">
+        <div class="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-600 transition-colors">
+          <svg class="w-6 h-6 text-blue-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 group-hover:text-blue-600">Enter Today's Values</h2>
+          <p class="text-xs text-gray-500 mt-1">Record daily purity, pressure, flow rate & PDP.</p>
+        </div>
+      </div>
     </a>
-    <a href="/weekly_records/" class="bg-white shadow-md rounded-lg p-6 text-center hover:bg-blue-50">
-      View Weekly Dashboard
+
+    <!-- Dashboard Card -->
+    <a href="{% url 'weekly_dashboard' %}" 
+       class="group bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-blue-500 transition-all duration-150">
+      <div class="flex items-center space-x-4">
+        <div class="p-3 bg-green-50 rounded-lg group-hover:bg-green-600 transition-colors">
+          <svg class="w-6 h-6 text-green-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 group-hover:text-green-600">Weekly Analytics</h2>
+          <p class="text-xs text-gray-500 mt-1">View trends, 30-day averages, and charts.</p>
+        </div>
+      </div>
     </a>
-    <a href="/alerts/" class="bg-white shadow-md rounded-lg p-6 text-center hover:bg-blue-50">
-      Check Alerts
+
+    <!-- Alerts Card -->
+    <a href="{% url 'alerts_page' %}" 
+       class="group bg-white p-6 rounded-xl shadow-sm border border-gray-200 hover:shadow-md hover:border-red-500 transition-all duration-150">
+      <div class="flex items-center space-x-4">
+        <div class="p-3 bg-red-50 rounded-lg group-hover:bg-red-600 transition-colors">
+          <svg class="w-6 h-6 text-red-600 group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="text-lg font-semibold text-gray-900 group-hover:text-red-600">Check System Alerts</h2>
+          <p class="text-xs text-gray-500 mt-1">Manage unacknowledged equipment warnings.</p>
+        </div>
+      </div>
     </a>
+
   </div>
 
-  <!-- Live Monitoring Card -->
-  <div id="liveBox" class="bg-white shadow-md rounded-lg p-6 mb-8">
-    <h2 class="text-xl font-semibold mb-4">Live Monitoring</h2>
-    <div class="space-y-2 text-gray-700">
-      <p>Loading latest oxygen data...</p>
+  <!-- Live Telemetry Monitor -->
+  <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+        </span>
+        Live Oxygen Telemetry
+      </h2>
+      <span class="text-xs text-gray-400">Auto-refreshing...</span>
+    </div>
+
+    <div id="liveBox" class="text-gray-600 min-h-[80px]">
+      <p class="text-sm text-gray-500 animate-pulse">Fetching real-time manifold metrics...</p>
     </div>
   </div>
 
-  <!-- Load unified dashboard.js -->
-  <script src="{% static 'daily_entries/dashboard.js' %}"></script>
+</div>
+
+<!-- JavaScript Integration -->
+<script>
+  window.csrfToken = "{{ csrf_token }}";
+</script>
+<script src="{% static 'daily_entries/dashboard.js' %}"></script>
 {% endblock %}

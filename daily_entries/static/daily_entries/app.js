@@ -1,18 +1,29 @@
 // app.js
 
-// Mobile menu toggle
-const menuBtn = document.getElementById('menu-btn');
-const mobileMenu = document.getElementById('mobile-menu');
-if (menuBtn) {
-    menuBtn.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-    });
-}
+document.addEventListener("DOMContentLoaded", () => {
+  // Mobile menu toggle
+  const menuBtn = document.getElementById("menu-btn");
+  const mobileMenu = document.getElementById("mobile-menu");
 
-// Auto-dismiss toasts after 4 seconds
-setTimeout(() => {
-    document.querySelectorAll('#toast-container .toast').forEach(toast => {
-        toast.classList.add('opacity-0'); // fade out
-        setTimeout(() => toast.remove(), 500); // remove after fade
+  if (menuBtn && mobileMenu) {
+    menuBtn.addEventListener("click", () => {
+      const isHidden = mobileMenu.classList.toggle("hidden");
+      menuBtn.setAttribute("aria-expanded", String(!isHidden));
     });
-}, 4000);
+  }
+
+  // Auto-dismiss toast notifications after 4 seconds
+  const dismissToasts = () => {
+    document
+      .querySelectorAll("#toast-container .toast")
+      .forEach(toast => {
+        toast.classList.add("opacity-0");
+
+        setTimeout(() => {
+          toast.remove();
+        }, 500);
+      });
+  };
+
+  setTimeout(dismissToasts, 4000);
+});

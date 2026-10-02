@@ -1,64 +1,107 @@
 {% extends "base.html" %}
 
+{% block title %}Manage Roles - {{ user.username }}{% endblock %}
+
 {% block content %}
 {% if is_admin %}
-<div class="container mx-auto py-8 px-6">
-    <h1 class="text-2xl font-bold text-blue-600 mb-6">
-        Manage Roles for {{ user.username }}
-    </h1>
+<div class="max-w-2xl mx-auto space-y-6">
+    <!-- Header -->
+    <div class="flex items-center justify-between border-b border-gray-200 pb-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">Manage Roles</h1>
+            <p class="text-sm text-gray-600 mt-1">
+                Assign or modify user permissions for 
+                <span class="font-semibold text-blue-600">{{ user.username }}</span>
+            </p>
+        </div>
+        <a href="{% url 'users_list' %}" class="text-sm font-medium text-blue-600 hover:text-blue-800 transition">
+            &larr; Back to Users
+        </a>
+    </div>
 
-    <form method="post" class="bg-white shadow rounded-lg p-6 space-y-4">
-        {% csrf_token %}
+    <!-- Main Card -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
 
-        <div class="space-y-3">
-            <label class="block text-sm font-medium text-gray-700">Assign Roles:</label>
+            <div>
+                <label class="block text-sm font-semibold text-gray-800 mb-3">
+                    Available Roles
+                </label>
 
-            {% if user.groups.count == 0 %}
-                <p class="text-gray-500 text-sm">This user currently has no roles assigned.</p>
-            {% endif %}
+                {% if user.groups.count == 0 %}
+                    <div class="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800 border border-amber-200">
+                        ⚠️ This user currently has no roles assigned.
+                    </div>
+                {% endif %}
 
-            {% for group in groups %}
-                <div class="flex items-center space-x-3">
-                    <input type="checkbox" name="roles" value="{{ group.id }}"
-                           {% if group in user.groups.all %}checked{% endif %}
-                           {% if user == request.user and group.name == "Admin" %}
-                               disabled
-                           {% endif %}
-                           class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                <div class="space-y-3">
+                    {% for group in groups %}
+                        <label class="flex items-center space-x-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="roles"
+                                value="{{ group.id }}"
+                                {% if group in user.groups.all %}checked{% endif %}
+                                {% if user == request.user and group.name == "Admin" %}disabled{% endif %}
+                                class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            >
 
-                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold
-                        {% if group.name == 'Admin' %}
-                            bg-red-100 text-red-700
-                        {% elif group.name == 'Technician' %}
-                            bg-yellow-100 text-yellow-700
-                        {% elif group.name == 'Viewer' %}
-                            bg-green-100 text-green-700
-                        {% else %}
-                            bg-gray-100 text-gray-700
-                        {% endif %}
-                    ">
-                        {{ group.name }}
-                        {% if user == request.user and group.name == "Admin" %}
-                            (cannot remove yourself)
-                        {% endif %}
-                    </span>
+                            <!-- Role Badge -->
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold
+                                {% if group.name == 'Admin' %}
+                                    bg-red-100 text-red-700 border border-red-200
+                                {% elif group.name == 'Technician' %}
+                                    bg-amber-100 text-amber-800 border border-amber-200
+                                {% elif group.name == 'Viewer' %}
+                                    bg-emerald-100 text-emerald-800 border border-emerald-200
+                                {% else %}
+                                    bg-gray-100 text-gray-700 border border-gray-200
+                                {% endif %}">
+                                {{ group.name }}
+                            </span>
+
+                            {% if user == request.user and group.name == "Admin" %}
+                                <span class="text-xs text-gray-400 italic">
+                                    (Self-removal protected)
+                                </span>
+                            {% endif %}
+                        </label>
+                    {% endfor %}
                 </div>
-            {% endfor %}
-        </div>
+            </div>
 
-        <div class="flex space-x-4">
-            <button type="submit"
-                    class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded hover:bg-blue-700">
-                Save Changes
-            </button>
-            <a href="{% url 'users_list' %}"
-               class="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded hover:bg-gray-300">
-                Cancel
-            </a>
-        </div>
-    </form>
+            <!-- Actions -->
+            <div class="flex items-center gap-3 pt-4 border-t border-gray-100">
+                <button
+                    type="submit"
+                    class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition"
+                >
+                    Save Changes
+                </button>
+
+                <button
+                    type="reset"
+                    class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 focus:outline-none transition"
+                >
+                    Reset
+                </button>
+
+                <a
+                    href="{% url 'users_list' %}"
+                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none transition"
+                >
+                    Cancel
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
 {% else %}
-<p class="text-red-600">Only Admins can manage roles.</p>
+<div class="max-w-md mx-auto my-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+    <div class="text-red-500 text-3xl mb-2">⛔</div>
+    <h2 class="text-lg font-bold text-red-800 mb-1">Access Restricted</h2>
+    <p class="text-sm text-red-600">Only Admins can access user management and role configurations.</p>
+</div>
 {% endif %}
 {% endblock %}

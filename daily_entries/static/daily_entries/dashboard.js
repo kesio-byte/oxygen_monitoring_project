@@ -1,169 +1,259 @@
 // dashboard.js
 
-let weeklyChart; // keep reference so we can update instead of recreate
+let weeklyChart;
+
+// ---------------- Helpers ----------------
+async function fetchJson(url) {
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`Request failed (${response.status})`);
+  }
+
+  return response.json();
+}
+
+function setText(element, value) {
+  element.textContent = value == null ? "" : String(value);
+}
+
+function getEntryTimestamp(entry) {
+  const timestamp = new Date(
+    `${entry.date ?? ""}T${entry.time ?? "00:00:00"}`
+  ).getTime();
+
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
 
 // ---------------- Alerts ----------------
-function loadAlerts() {
-  fetch("/daily_entries/api/alerts/")
-    .then(res => res.json())
-    .then(alerts => {
-      console.log("Fetched alerts:", alerts); // debug
-      const alertBox = document.querySelector("#alertsBox");
-      if (!alertBox) return;
-      alertBox.innerHTML = "";
+async function loadAlerts() {
+  const alertBox = document.querySelector("#alertsBox");
+  if (!alertBox) return;
 
-      if (!alerts || alerts.length === 0) {
-        alertBox.innerHTML = "<p class='text-gray-500'>No alerts at the moment.</p>";
-        return;
-      }
+  try {
+    const alerts = await fetchJson("/daily_entries/api/alerts/");
+    alertBox.replaceChildren();
 
-      alerts.forEach(a => {
-        const div = document.createElement("div");
-        div.className =
-          "p-2 mb-2 rounded " +
-          (a.level === "critical"
-            ? "bg-red-100 border-l-4 border-red-500 text-red-700"
-            : a.level === "warning"
-            ? "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700"
-            : "bg-green-100 border-l-4 border-green-500 text-green-700");
-        div.textContent = a.message;
-        alertBox.appendChild(div);
-      });
-    })
-    .catch(err => console.error("Error loading alerts:", err));
+    if (!Array.isArray(alerts) || alerts.length === 0) {
+      const message = document.createElement("p");
+      message.className = "text-gray-500";
+      message.textContent = "No alerts at the moment.";
+      alertBox.appendChild(message);
+      return;
+    }
+
+    alerts.forEach(alert => {
+      const div = document.createElement("div");
+
+      const levelClass = alert.level === "critical"
+        ? "bg-red-100 border-l-4 border-red-500 text-red-700"
+        : alert.level === "warning"
+        ? "bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700"
+        : "bg-green-100 border-l-4 border-green-500 text-green-700";
+
+      div.className = `p-2 mb-2 rounded ${levelClass}`;
+      div.textContent = alert.message ?? "";
+      alertBox.appendChild(div);
+    });
+  } catch (error) {
+    console.error("Error loading alerts:", error);
+  }
 }
 
 // ---------------- Live Monitoring ----------------
-function loadLiveData() {
-  fetch("/daily_entries/api/live/")
-    .then(res => res.json())
-    .then(data => {
-      const box = document.querySelector("#liveBox");
-      if (!box) return;
+async function loadLiveData() {
+  const box = document.querySelector("#liveBox");
+  if (!box) return;
 
-      if (data.error) {
-        box.innerHTML = `<p class="text-gray-500">No live data available</p>`;
-        return;
+  try {
+    const data = await fetchJson("/daily_entries/api/live/");
+
+    if (!data || data.error) {
+      const message = document.createElement("p");
+      message.className = "text-gray-500";
+      message.textContent = "No live data available.";
+      box.replaceChildren(message);
+      return;
+    }
+
+    const purity = Number.parseFloat(data.oxygen_purity);
+    const pressure = Number.parseFloat(data.pressure);
+    const flowRate = Number.parseFloat(data.flow_rate);
+    const pdp = Number.parseFloat(data.pdp);
+
+    const purityClass = Number.isFinite(purity) && purity < 90
+      ? "text-red-600 font-bold"
+      : "text-green-600";
+
+    const pressureClass = Number.isFinite(pressure) && pressure < 4
+      ? "text-orange-600 font-bold"
+      : "text-green-600";
+
+    const flowClass = Number.isFinite(flowRate) && flowRate < 3
+      ? "text-orange-600 font-bold"
+      : "text-green-600";
+
+    const pdpClass = Number.isFinite(pdp) && pdp > -50
+      ? "text-red-600 font-bold"
+      : "text-green-600";
+
+    const statusClass = data.critical_flag
+      ? "bg-red-100 text-red-700"
+      : "bg-green-100 text-green-700";
+
+    const statusText = data.critical_flag ? "❌ Critical" : "✅ Normal";
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "border border-gray-300 rounded shadow-md";
+
+    const table = document.createElement("table");
+    table.className = "table-auto w-full text-sm text-gray-700";
+
+    const tbody = document.createElement("tbody");
+
+    const rows = [
+      ["Technician", data.operator],
+      ["Date", data.date],
+      ["Time", data.time],
+      ["Oxygen Purity", `${data.oxygen_purity ?? ""}%`, purityClass],
+      ["Pressure", `${data.pressure ?? ""} bar`, pressureClass],
+      ["Flow Rate", `${data.flow_rate ?? ""} L/min`, flowClass],
+      ["PDP", `${data.pdp ?? ""} °C`, pdpClass],
+      ["Status", statusText, `${statusClass} font-bold px-2 py-1 rounded`],
+      ["Alert", data.email_sent ? "Email has been sent to the technician" : ""]
+    ];
+
+    rows.forEach(([label, value, valueClass = ""]) => {
+      const row = document.createElement("tr");
+
+      const heading = document.createElement("th");
+      heading.className = "px-4 py-2 text-left";
+      heading.textContent = label;
+
+      const cell = document.createElement("td");
+      cell.className = `px-4 py-2 ${valueClass}`;
+      cell.textContent = value == null ? "" : String(value);
+
+      if (label === "Alert" && data.email_sent) {
+        cell.classList.add("text-blue-600", "font-semibold");
       }
 
-      // Threshold-based coloring
-      const purityClass = parseFloat(data.oxygen_purity) < 90 ? "text-red-600 font-bold" : "text-green-600";
-      const pressureClass = parseFloat(data.pressure) < 4.0 ? "text-orange-600 font-bold" : "text-green-600";
-      const flowClass = parseFloat(data.flow_rate) < 3.0 ? "text-orange-600 font-bold" : "text-green-600";
-      const pdpClass = parseFloat(data.pdp) > -50 ? "text-red-600 font-bold" : "text-green-600";
-      const statusClass = data.critical_flag ? "bg-red-100 text-red-700 font-bold px-2 py-1 rounded" : "bg-green-100 text-green-700 font-bold px-2 py-1 rounded";
-      const statusText = data.critical_flag ? "❌ Critical" : "✅ Normal";
-      const emailInfo = data.email_sent
-        ? '<span class="text-blue-600 font-semibold"> Email has been sent to the technician</span>'
-        : '';
+      row.append(heading, cell);
+      tbody.appendChild(row);
+    });
 
-      box.innerHTML = `
-  <div class="border border-gray-300 rounded shadow-md">
-    <table class="table-auto w-full text-sm text-gray-700">
-      <tbody>
-        <tr><th class="px-4 py-2 text-left">Technician</th><td class="px-4 py-2">${data.operator}</td></tr>
-        <tr><th class="px-4 py-2 text-left">Date</th><td class="px-4 py-2">${data.date}</td></tr>
-        <tr><th class="px-4 py-2 text-left">Time</th><td class="px-4 py-2">${data.time}</td></tr>
-        <tr><th class="px-4 py-2 text-left">Oxygen Purity</th><td class="px-4 py-2">${data.oxygen_purity}%</td></tr>
-        <tr><th class="px-4 py-2 text-left">Pressure</th><td class="px-4 py-2">${data.pressure} bar</td></tr>
-        <tr><th class="px-4 py-2 text-left">Flow Rate</th><td class="px-4 py-2">${data.flow_rate} L/min</td></tr>
-        <tr><th class="px-4 py-2 text-left">PDP</th><td class="px-4 py-2">${data.pdp} °C</td></tr>
-        <tr><th class="px-4 py-2 text-left">Status</th><td class="px-4 py-2 ${statusClass}">${statusText}</td></tr>
-        <tr><th class="px-4 py-2 text-left">Alert</th><td class="px-4 py-2">${emailInfo}</td></tr>
-      </tbody>
-    </table>
-  </div>
-`;
-
-    })
-    .catch(err => console.error("Error loading live data:", err));
+    table.appendChild(tbody);
+    wrapper.appendChild(table);
+    box.replaceChildren(wrapper);
+  } catch (error) {
+    console.error("Error loading live data:", error);
+  }
 }
 
 // ---------------- Entries + Graph ----------------
-function loadEntries() {
-  fetch("/daily_entries/api/entries/")
-    .then(res => res.json())
-    .then(entries => {
-      console.log("Fetched entries:", entries);
-      renderTable(entries);
-      renderWeeklyGraph(
-        entries.map(e => e.date).reverse(),
-        entries.map(e => e.oxygen_purity).reverse(),
-        entries.map(e => e.pressure).reverse(),
-        entries.map(e => e.flow_rate).reverse(),
-        entries.map(e => e.pdp).reverse()
-      );
-    })
-    .catch(err => console.error("Error loading entries:", err));
+async function loadEntries() {
+  try {
+    const entries = await fetchJson("/daily_entries/api/entries/");
+
+    if (!Array.isArray(entries)) {
+      throw new Error("The entries API did not return an array.");
+    }
+
+    renderTable(entries);
+
+    const chronologicalEntries = [...entries].sort(
+      (a, b) => getEntryTimestamp(a) - getEntryTimestamp(b)
+    );
+
+    renderWeeklyGraph(
+      chronologicalEntries.map(entry => entry.date ?? ""),
+      chronologicalEntries.map(entry => entry.oxygen_purity ?? null),
+      chronologicalEntries.map(entry => entry.pressure ?? null),
+      chronologicalEntries.map(entry => entry.flow_rate ?? null),
+      chronologicalEntries.map(entry => entry.pdp ?? null)
+    );
+  } catch (error) {
+    console.error("Error loading entries:", error);
+  }
 }
 
-// ---------------- Render table function -------------------
+// ---------------- Render Table ----------------
 function renderTable(entries) {
   const tbody = document.querySelector("#entriesTableBody");
   if (!tbody) return;
-  tbody.innerHTML = "";
-  entries.forEach(e => {
+
+  tbody.replaceChildren();
+
+  const newestFirst = [...entries].sort(
+    (a, b) => getEntryTimestamp(b) - getEntryTimestamp(a)
+  );
+
+  newestFirst.forEach(entry => {
     const row = document.createElement("tr");
     row.className = "hover:bg-gray-50";
-    row.innerHTML = `
-      <td class="px-4 py-2">${e.date}</td>
-      <td class="px-4 py-2">${e.operator}</td>
-      <td class="px-4 py-2">${e.oxygen_purity}</td>
-      <td class="px-4 py-2">${e.pressure}</td>
-      <td class="px-4 py-2">${e.flow_rate}</td>
-      <td class="px-4 py-2">${e.pdp}</td>
-    `;
+
+    // Keep these columns aligned with your table headings.
+    [
+      entry.date,
+      entry.operator,
+      entry.oxygen_purity,
+      entry.pressure,
+      entry.flow_rate,
+      entry.pdp
+    ].forEach(value => {
+      const cell = document.createElement("td");
+      cell.className = "px-4 py-2";
+      setText(cell, value);
+      row.appendChild(cell);
+    });
+
     tbody.appendChild(row);
   });
 }
 
-// ----------------Renderweeklygraph -------------------
+// ---------------- Render / Update Graph ----------------
 function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
-  const canvas = document.getElementById('weeklyGraph');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const canvas = document.getElementById("weeklyGraph");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const datasets = [
+    { label: "Purity (%)", data: purityData, borderColor: "blue", fill: false },
+    { label: "Pressure (bar)", data: pressureData, borderColor: "red", fill: false },
+    { label: "Flow Rate (L/min)", data: flowRateData, borderColor: "green", fill: false },
+    { label: "PDP (°C)", data: pdpData, borderColor: "orange", fill: false }
+  ];
 
   if (weeklyChart) {
     weeklyChart.data.labels = labels;
-    weeklyChart.data.datasets[0].data = purityData;
-    weeklyChart.data.datasets[1].data = pressureData;
-    weeklyChart.data.datasets[2].data = flowRateData;
-    weeklyChart.data.datasets[3].data = pdpData;
+    weeklyChart.data.datasets.forEach((dataset, index) => {
+      dataset.data = datasets[index].data;
+    });
     weeklyChart.update();
-  } else {
-    weeklyChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
-          { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
-          { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
-          { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom' },
-          title: { display: true, text: 'Weekly Oxygen Monitoring Trends' }
+    return;
+  }
+
+  weeklyChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" },
+        title: {
+          display: true,
+          text: "Weekly Oxygen Monitoring Trends"
         }
       }
-    });
-  }
+    }
+  });
 }
 
-// ---------------- DOM Ready ----------------
+// ---------------- Initial Load + Polling ----------------
 document.addEventListener("DOMContentLoaded", () => {
-  // Load alerts once, then refresh every 30s
   loadAlerts();
-  setInterval(loadAlerts, 30000);
-
-  // Load entries once (no need to poll constantly)
   loadEntries();
-
-  // Load live data immediately, then refresh every 30s
   loadLiveData();
+
+  setInterval(loadAlerts, 30000);
   setInterval(loadLiveData, 30000);
 });
-

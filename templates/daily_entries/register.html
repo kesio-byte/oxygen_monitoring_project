@@ -1,23 +1,77 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mx-auto py-8 px-6">
-    <h1 class="text-2xl font-bold text-blue-600 mb-6">Register New User</h1>
+<div class="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-violet-50 px-4 py-12 sm:px-6">
+    <div class="mx-auto max-w-xl">
 
-    <form method="post" class="space-y-4 bg-white shadow rounded-lg p-6">
-        {% csrf_token %}
-        {{ form.as_p }}
-
-        <div class="flex space-x-2">
-            <button type="submit" 
-                    class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                Create Account
-            </button>
-            <a href="{% url 'users_list' %}" 
-               class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
-                Cancel
-            </a>
+        <!-- Page Header -->
+        <div class="mb-8 text-center">
+            <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-100 text-2xl shadow-inner">
+                👋
+            </div>
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900">
+                Create your account
+            </h1>
+            <p class="mt-2 text-slate-600">
+                Join us in just a few steps. Enter your details below to get started.
+            </p>
         </div>
-    </form>
+
+        <!-- Form Card -->
+        <div class="rounded-3xl bg-white p-6 shadow-xl shadow-indigo-100/60 ring-1 ring-slate-200 sm:p-9">
+            <form method="post" novalidate class="space-y-5">
+                {% csrf_token %}
+
+                <!-- Non-Field Validation Errors -->
+                {% if form.non_field_errors %}
+                    <div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                        {% for error in form.non_field_errors %}
+                            <p class="font-medium">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <!-- Form Fields Loop -->
+                {% for field in form %}
+                    <div>
+                        <label for="{{ field.id_for_label }}"
+                               class="mb-2 block text-sm font-semibold text-slate-700">
+                            {{ field.label }}
+                            {% if field.field.required %}
+                                <span class="text-rose-500">*</span>
+                            {% endif %}
+                        </label>
+
+                        <div class="relative">
+                            {{ field }}
+                        </div>
+
+                        {% if field.help_text %}
+                            <p class="mt-1.5 text-xs text-slate-500">{{ field.help_text|safe }}</p>
+                        {% endif %}
+
+                        {% for error in field.errors %}
+                            <p class="mt-1.5 text-sm font-medium text-rose-600">{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+
+                <!-- Submit Button -->
+                <button type="submit"
+                        class="w-full rounded-xl bg-indigo-600 px-5 py-3 text-base font-semibold text-white shadow-md shadow-indigo-200 transition duration-150 hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-200 active:bg-indigo-800">
+                    Create account
+                </button>
+
+                <!-- Navigation link -->
+                <p class="text-center text-sm text-slate-500">
+                    Already have an account?
+                    <a href="{% url 'login' %}" class="font-semibold text-indigo-600 transition hover:text-indigo-700">
+                        Sign in
+                    </a>
+                </p>
+            </form>
+        </div>
+
+    </div>
 </div>
 {% endblock %}

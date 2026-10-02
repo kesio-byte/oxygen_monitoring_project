@@ -1,19 +1,37 @@
-from django.shortcuts import render, redirect, get_object_or_404
-from django.utils import timezone
 from datetime import timedelta
-from django.db.models import Avg, Q
-from django.contrib.auth.decorators import login_required
+import json
+import os
+
 from django.contrib import messages
-from django.http import JsonResponse
-from django.core.paginator import Paginator
-from django.contrib.auth.models import User, Group
-from django.views.decorators.http import require_POST
-import json, os
+from django.contrib.auth.decorators import login_required, permission_required
+from django.contrib.auth.models import Group, User
 from django.core.mail import send_mail
-from .models import DailyEntry
-from .forms import DailyEntryForm, CustomUserCreationForm
+from django.core.paginator import Paginator
+from django.db.models import Avg, Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
+from django.views.decorators.http import require_POST
+
 from alerts.utils import send_alert_email
-from daily_entries.models import DailyEntry
+from .forms import DailyEntryForm, CustomUserCreationForm
+from .models import DailyEntry
+
+
+# -------------------------
+# Access control
+# -------------------------
+def operator_required(view_func):
+    """Require the user to be logged in and belong to the Operator group."""
+    @login_required
+    def wrapped(request, *args, **kwargs):
+        if not request.user.groups.filter(name="Operator").exists():
+            messages.error(request, "Only Operators can submit daily entries.")
+            return redirect("home")
+        return view_func(request, *args, **kwargs)
+
+    return wrapped
+
 
 # -------------------------
 # Home Page
@@ -21,6 +39,7 @@ from daily_entries.models import DailyEntry
 @login_required
 def home(request):
     return render(request, "daily_entries/homepage.html")
+
 
 # -------------------------
 # User List (Admins only)
@@ -32,10 +51,15 @@ def users_list(request):
         return redirect("home")
 
     query = request.GET.get("q")
-    users = User.objects.all()
+    users = User.objects.all().prefetch_related("groups")
+
     if query:
-        users = users.filter(Q(username__icontains=query) | Q(email__icontains=query))
+        users = users.filter(
+            Q(username__icontains=query) | Q(email__icontains=query)
+        )
+
     return render(request, "daily_entries/users.html", {"users": users})
+
 
 # -------------------------
 # Register New User (Admins only)
@@ -54,7 +78,9 @@ def register(request):
             return redirect("users_list")
     else:
         form = CustomUserCreationForm()
+
     return render(request, "daily_entries/register.html", {"form": form})
+
 
 # -------------------------
 # Manage Roles (Admins only)
@@ -72,7 +98,7 @@ def manage_roles(request, user_id):
         selected_roles = request.POST.getlist("roles")
         selected_groups = Group.objects.filter(id__in=selected_roles)
 
-        # 🚨 Safeguard: prevent removing your own Admin role
+        # Prevent an Admin from removing their own Admin role.
         if user == request.user and not selected_groups.filter(name="Admin").exists():
             messages.error(request, "You cannot remove your own Admin role.")
             return redirect("manage_roles", user_id=user.id)
@@ -87,98 +113,114 @@ def manage_roles(request, user_id):
         {
             "user": user,
             "groups": groups,
-            "is_admin": request.user.groups.filter(name="Admin").exists(),
+            "is_admin": True,
         },
     )
+
 
 # -------------------------
 # Daily Entries
 # -------------------------
-
-@login_required
+@operator_required
 def add_entry(request):
-    if request.method == 'POST':
+    if request.method == "POST":
         form = DailyEntryForm(request.POST)
+
         if form.is_valid():
             entry = form.save(commit=False)
             entry.operator = request.user
 
-            # ✅ Explicitly set local Malawi time
             now = timezone.localtime(timezone.now())
             entry.date = now.date()
             entry.time = now.time().replace(second=0, microsecond=0)
 
             entry.save()
 
-            # 🚨 Email trigger logic
             if entry.oxygen_purity < 90:
-                send_alert_email(f"⚠️ Oxygen purity critically low ({entry.oxygen_purity:.1f}%)")
+                send_alert_email(
+                    f"Oxygen purity critically low ({entry.oxygen_purity:.1f}%)"
+                )
             elif entry.pressure < 4.0:
-                send_alert_email(f"⚠️ Pressure critically low ({entry.pressure:.1f} bar)")
+                send_alert_email(
+                    f"Pressure critically low ({entry.pressure:.1f} bar)"
+                )
             elif entry.flow_rate < 3.0:
-                send_alert_email(f"⚠️ Flow rate critically low ({entry.flow_rate:.1f} L/min)")
+                send_alert_email(
+                    f"Flow rate critically low ({entry.flow_rate:.1f} L/min)"
+                )
             elif entry.pdp > -50.0:
-                send_alert_email(f"⚠️ PDP critically high ({entry.pdp:.1f} °C)")
+                send_alert_email(
+                    f"PDP critically high ({entry.pdp:.1f} °C)"
+                )
 
-            messages.success(request, "✅ Entry saved successfully.")
-            return redirect('weekly_dashboard')
-        else:
-            messages.error(request, "⚠️ Please correct the errors below.")
+            messages.success(request, "Entry saved successfully.")
+            return redirect("weekly_dashboard")
+
+        messages.error(request, "Please correct the errors below.")
     else:
         form = DailyEntryForm()
 
-    return render(request, 'daily_entries/entry_form.html', {
-        "form": form,
-        "today": timezone.localtime(timezone.now()).date()
-    })
+    return render(
+        request,
+        "daily_entries/entry_form.html",
+        {
+            "form": form,
+            "today": timezone.localtime(timezone.now()).date(),
+        },
+    )
 
 
 # -------------------------
 # Weekly Dashboard
 # -------------------------
-
-from django.shortcuts import render
-from django.utils import timezone
-from datetime import timedelta
-from django.db.models import Avg
-from django.core.paginator import Paginator
-from django.contrib.auth.decorators import login_required
-from .models import DailyEntry
-import json
-
 @login_required
 def weekly_dashboard(request):
     today = timezone.now().date()
-    week_start = today - timedelta(days=30)  # last 30 days
+    week_start = today - timedelta(days=30)
 
-    # ✅ Order newest-first
-    entries_qs = DailyEntry.objects.filter(date__gte=week_start).order_by("-created_at")
+    entries_qs = DailyEntry.objects.filter(
+        date__gte=week_start
+    ).order_by("-date", "-time")
 
-    # ✅ Pagination
     paginator = Paginator(entries_qs, 10)
-    page_number = request.GET.get("page")
-    entries = paginator.get_page(page_number)
+    entries = paginator.get_page(request.GET.get("page"))
 
-    # ✅ Averages
-    avg_purity = entries_qs.aggregate(Avg("oxygen_purity"))["oxygen_purity__avg"]
-    avg_pressure = entries_qs.aggregate(Avg("pressure"))["pressure__avg"]
-    avg_flow = entries_qs.aggregate(Avg("flow_rate"))["flow_rate__avg"]
-    avg_pdp = entries_qs.aggregate(Avg("pdp"))["pdp__avg"]
+    aggregates = entries_qs.aggregate(
+        avg_purity=Avg("oxygen_purity"),
+        avg_pressure=Avg("pressure"),
+        avg_flow=Avg("flow_rate"),
+        avg_pdp=Avg("pdp"),
+    )
 
-    # ✅ Safety alerts
-    SAFE_PURITY, SAFE_PRESSURE = 93.0, 4.5
+    avg_purity = aggregates["avg_purity"]
+    avg_pressure = aggregates["avg_pressure"]
+    avg_flow = aggregates["avg_flow"]
+    avg_pdp = aggregates["avg_pdp"]
+
     alerts = []
-    if avg_purity and avg_purity < SAFE_PURITY:
-        alerts.append(f"Oxygen purity averaged {avg_purity:.1f}% — below safe threshold.")
-    if avg_pressure and avg_pressure < SAFE_PRESSURE:
-        alerts.append(f"Pressure averaged {avg_pressure:.1f} bar — below safe threshold.")
 
-    # ✅ Chart.js JSON arrays (from full queryset, not paginated page)
-    labels_json = json.dumps([str(e.date) for e in entries_qs])
-    purity_json = json.dumps([float(e.oxygen_purity) for e in entries_qs])
-    pressure_json = json.dumps([float(e.pressure) for e in entries_qs])
-    flow_json = json.dumps([float(e.flow_rate) for e in entries_qs])
-    pdp_json = json.dumps([float(e.pdp) for e in entries_qs])
+    if avg_purity is not None and avg_purity < 93.0:
+        alerts.append(
+            f"Oxygen purity averaged {avg_purity:.1f}% — below safe threshold."
+        )
+
+    if avg_pressure is not None and avg_pressure < 4.5:
+        alerts.append(
+            f"Pressure averaged {avg_pressure:.1f} bar — below safe threshold."
+        )
+
+    chart_entries = list(reversed(list(entries_qs)))
+    labels_json = json.dumps([str(entry.date) for entry in chart_entries])
+    purity_json = json.dumps(
+        [float(entry.oxygen_purity) for entry in chart_entries]
+    )
+    pressure_json = json.dumps(
+        [float(entry.pressure) for entry in chart_entries]
+    )
+    flow_json = json.dumps(
+        [float(entry.flow_rate) for entry in chart_entries]
+    )
+    pdp_json = json.dumps([float(entry.pdp) for entry in chart_entries])
 
     context = {
         "entries": entries,
@@ -193,12 +235,23 @@ def weekly_dashboard(request):
         "flow_json": flow_json,
         "pdp_json": pdp_json,
     }
+
     return render(request, "daily_entries/weekly_dashboard.html", context)
 
+
+# -------------------------
+# APIs
+# -------------------------
 def entries_api(request):
-    entries = DailyEntry.objects.order_by().values(
-        "id", "date", "time", "operator",
-        "oxygen_purity", "pressure", "flow_rate", "pdp"
+    entries = DailyEntry.objects.order_by("-date", "-time").values(
+        "id",
+        "date",
+        "time",
+        "operator",
+        "oxygen_purity",
+        "pressure",
+        "flow_rate",
+        "pdp",
     )
     return JsonResponse(list(entries), safe=False)
 
@@ -206,124 +259,273 @@ def entries_api(request):
 def monthly_api(request):
     today = timezone.now().date()
     month_start = today - timedelta(days=30)
-    entries = DailyEntry.objects.filter(date__gte=month_start).order_by("-date")
 
-    data = [
-        {
-            "date": str(e.date),
-            "operator": e.operator.username,
-            "oxygen_purity": e.oxygen_purity,
-            "pressure": e.pressure,
-            "flow_rate": e.flow_rate,
-            "pdp": e.pdp,
-        }
-        for e in entries
-    ]
-    return JsonResponse(data, safe=False)
-
-
-def alerts_api(request):
-    # Example: return only critical/warning alerts
-    alerts = DailyEntry.objects.filter(
-        critical_flag=True
-    ) | DailyEntry.objects.filter(alert_status=True)
-
-    data = [
-        {
-            "id": e.id,
-            "date": str(e.date),
-            "time": str(e.time),
-            "operator": e.operator.username if e.operator else "",
-            "oxygen_purity": e.oxygen_purity,
-            "pressure": e.pressure,
-            "flow_rate": e.flow_rate,
-            "pdp": e.pdp,
-            "critical_flag": e.critical_flag,
-            "alert_status": e.alert_status,
-            "notes": e.notes,
-        }
-        for e in alerts.order_by("-date", "-time")[:20]  # latest 20 alerts
-    ]
-    return JsonResponse(data, safe=False)
-
-
-def update_ack(request, entry_id):
-    entry = get_object_or_404(DailyEntry, id=entry_id)
-
-    # Only allow authenticated users to acknowledge
-    if request.user.is_authenticated:
-        entry.alert_status = False   # or set an "acknowledged" flag if you have one
-        entry.save()
-        messages.success(request, f"Alert for entry {entry.id} acknowledged.")
-    else:
-        messages.error(request, "You must be logged in to acknowledge alerts.")
-
-    return redirect("alerts_page")  # redirect back to alerts page
-
-
-
-def unacknowledged_alerts(request):
-    # Filter entries where alert_status is True (still active)
-    alerts = DailyEntry.objects.filter(alert_status=True).order_by("-date", "-time")
-
-    return render(
-        request,
-        "daily_entries/unacknowledged_alerts.html",
-        {"alerts": alerts}
+    entries = (
+        DailyEntry.objects.filter(date__gte=month_start)
+        .select_related("operator")
+        .order_by("-date")
     )
 
+    data = [
+        {
+            "date": str(entry.date),
+            "operator": entry.operator.username if entry.operator else "—",
+            "oxygen_purity": float(entry.oxygen_purity),
+            "pressure": float(entry.pressure),
+            "flow_rate": float(entry.flow_rate),
+            "pdp": float(entry.pdp),
+        }
+        for entry in entries
+    ]
 
-def daily_entries_list(request):
-    entries = DailyEntry.objects.all().order_by("-date", "-time")
-    return render(request, "daily_entries/list.html", {"entries": entries})
+    return JsonResponse(data, safe=False)
 
 
-def alerts_page(request):
-    alert_history = DailyEntry.objects.order_by("-date", "-time")[:50]
-    return render(request, "daily_entries/alerts.html", {"alert_history": alert_history})
+def all_alerts_api(request):
+    alerts = (
+        DailyEntry.objects.select_related("operator")
+        .order_by("-date", "-time")[:50]
+    )
+
+    data = [
+        {
+            "id": entry.id,
+            "date": str(entry.date),
+            "time": str(entry.time),
+            "operator": entry.operator.username if entry.operator else "",
+            "oxygen_purity": float(entry.oxygen_purity),
+            "pressure": float(entry.pressure),
+            "flow_rate": float(entry.flow_rate),
+            "pdp": float(entry.pdp),
+            "critical_flag": entry.critical_flag,
+            "alert_status": entry.alert_status,
+            "notes": entry.notes or "",
+            "technician_ack": entry.technician_ack,
+        }
+        for entry in alerts
+    ]
+
+    return JsonResponse(data, safe=False)
+
 
 def live_monitoring_api(request):
-    latest = DailyEntry.objects.order_by("-date", "-time").first()
+    latest = (
+        DailyEntry.objects.select_related("operator")
+        .order_by("-date", "-time")
+        .first()
+    )
+
     if not latest:
-        return JsonResponse({"error": "No entries found"})
+        return JsonResponse({"error": "No entries found"}, status=404)
 
     critical_flag = False
     alert_message = None
 
     if latest.oxygen_purity < 90:
-        alert_message = f"⚠️ Oxygen purity critically low ({latest.oxygen_purity:.1f}%)"
-        critical_flag = True
+        alert_message = (
+            f"Oxygen purity critically low ({latest.oxygen_purity:.1f}%)"
+        )
     elif latest.pressure < 4.0:
-        alert_message = f"⚠️ Pressure critically low ({latest.pressure:.1f} bar)"
-        critical_flag = True
+        alert_message = f"Pressure critically low ({latest.pressure:.1f} bar)"
     elif latest.flow_rate < 3.0:
-        alert_message = f"⚠️ Flow rate critically low ({latest.flow_rate:.1f} L/min)"
-        critical_flag = True
+        alert_message = (
+            f"Flow rate critically low ({latest.flow_rate:.1f} L/min)"
+        )
     elif latest.pdp > -50.0:
-        alert_message = f"⚠️ PDP critically high ({latest.pdp:.1f} °C)"
-        critical_flag = True
+        alert_message = f"PDP critically high ({latest.pdp:.1f} °C)"
 
-    # 🚨 Send email asynchronously or fail silently
-    if critical_flag and alert_message:
+    critical_flag = alert_message is not None
+
+    if critical_flag:
         try:
             send_mail(
                 subject="Hospital Oxygen Monitoring Alert",
                 message=alert_message,
                 from_email=os.getenv("EMAIL_HOST_USER"),
                 recipient_list=["kesiomtewacolllins@zohomail.com"],
-                fail_silently=True,  # don’t block JSON
+                fail_silently=True,
             )
-        except Exception as e:
-            print("Email error:", e)
+        except Exception as exc:
+            print("Email error:", exc)
+
+    return JsonResponse(
+        {
+            "date": str(latest.date),
+            "time": str(latest.time),
+            "operator": latest.operator.username if latest.operator else "—",
+            "oxygen_purity": float(latest.oxygen_purity),
+            "pressure": float(latest.pressure),
+            "flow_rate": float(latest.flow_rate),
+            "pdp": float(latest.pdp),
+            "critical_flag": critical_flag,
+            "email_sent": critical_flag,
+        }
+    )
+
+
+# -------------------------
+# Alerts
+# -------------------------
+@require_POST
+def update_ack(request, entry_id):
+    if not request.user.is_authenticated:
+        messages.error(request, "You must be logged in to acknowledge alerts.")
+        return redirect("login")
+
+    entry = get_object_or_404(DailyEntry, id=entry_id)
+    entry.technician_ack = request.POST.get("ack") == "true"
+    entry.save(update_fields=["technician_ack"])
+
+    messages.success(
+        request,
+        f"Alert {entry.id} acknowledgment set to {entry.technician_ack}.",
+    )
+    return redirect("alerts_page")
+
+
+def unacknowledged_alerts(request):
+    alerts = DailyEntry.objects.filter(
+        technician_ack=False
+    ).order_by("-date", "-time")
+
+    return render(
+        request,
+        "daily_entries/unacknowledged_alerts.html",
+        {"alerts": alerts},
+    )
+
+
+@login_required
+def alerts_page(request):
+    alert_history_qs = DailyEntry.objects.order_by("-date", "-time")
+    paginator_all = Paginator(alert_history_qs, 10)
+    alert_history = paginator_all.get_page(request.GET.get("page_all"))
+
+    unack_qs = DailyEntry.objects.filter(
+        alert_status=True,
+        technician_ack=False,
+    ).order_by("-date", "-time")
+
+    paginator_unack = Paginator(unack_qs, 10)
+    unack_alerts = paginator_unack.get_page(request.GET.get("page_unack"))
+
+    return render(
+        request,
+        "daily_entries/alerts.html",
+        {
+            "alert_history": alert_history,
+            "alerts": unack_alerts,
+            "active_tab": request.GET.get("tab", "all"),
+        },
+    )
+
+
+@login_required
+@permission_required("daily_entries.change_dailyentry", raise_exception=True)
+@require_POST
+def alerts_ack(request, pk):
+    entry = get_object_or_404(DailyEntry, pk=pk)
+    entry.technician_ack = request.POST.get("ack") == "true"
+    entry.save(update_fields=["technician_ack"])
+
+    return JsonResponse(
+        {
+            "success": True,
+            "ack": entry.technician_ack,
+        }
+    )
+
+
+# -------------------------
+# Other entry views
+# -------------------------
+def daily_entries_list(request):
+    entries = DailyEntry.objects.all().order_by("-date", "-time")
+    return render(request, "daily_entries/list.html", {"entries": entries})
+
+
+# -------------------------
+# Delete User (Admins only)
+# -------------------------
+@require_POST
+@login_required
+def delete_user(request):
+    if not request.user.groups.filter(name="Admin").exists():
+        messages.error(request, "Only Admins can delete users.")
+        return redirect("users_list")
+
+    user_id = request.POST.get("user_id")
+    user = get_object_or_404(User, id=user_id)
+
+    if user == request.user:
+        messages.error(request, "You cannot delete your own account.")
+    else:
+        username = user.username
+        user.delete()
+        messages.success(request, f"User '{username}' deleted successfully.")
+
+    return redirect("users_list")
+
+def alerts_api(request):
+    entries = DailyEntry.objects.order_by("-date", "-time")
+    latest = entries.first()
+
+    alert_messages = []
+    if latest:
+        if latest.oxygen_purity < 90:
+            alert_messages.append(
+                f"Latest oxygen purity critically low ({latest.oxygen_purity:.1f}%)"
+            )
+        if latest.pressure < 4.0:
+            alert_messages.append(
+                f"Latest pressure critically low ({latest.pressure:.1f} bar)"
+            )
+        if latest.flow_rate < 3.0:
+            alert_messages.append(
+                f"Latest flow rate critically low ({latest.flow_rate:.1f} L/min)"
+            )
+        if latest.pdp > -50.0:
+            alert_messages.append(
+                f"Latest PDP critically high ({latest.pdp:.1f} °C)"
+            )
+
+        if not alert_messages:
+            alert_messages.append("System normal")
+
+    alerts = [
+        {"type": "latest", "message": message}
+        for message in alert_messages
+    ]
+
+    # Keep the existing entry/pagination data expected by other API consumers.
+    unack_qs = DailyEntry.objects.filter(
+        alert_status=True,
+        technician_ack=False,
+    ).order_by("-date", "-time")
+
+    paginator = Paginator(unack_qs, 10)
+    page_obj = paginator.get_page(request.GET.get("page_unack", 1))
+
+    entry_data = [
+        {
+            "id": entry.id,
+            "date": str(entry.date),
+            "time": str(entry.time),
+            "operator": entry.operator.username if entry.operator else "",
+            "oxygen_purity": float(entry.oxygen_purity),
+            "pressure": float(entry.pressure),
+            "flow_rate": float(entry.flow_rate),
+            "pdp": float(entry.pdp),
+            "notes": entry.notes or "",
+            "technician_ack": entry.technician_ack,
+        }
+        for entry in page_obj
+    ]
 
     return JsonResponse({
-        "date": str(latest.date),
-        "time": str(latest.time),
-        "operator": latest.operator.username if latest.operator else "—",
-        "oxygen_purity": float(latest.oxygen_purity),
-        "pressure": float(latest.pressure),
-        "flow_rate": float(latest.flow_rate),
-        "pdp": float(latest.pdp),
-        "critical_flag": critical_flag,
-        "email_sent": bool(critical_flag and alert_message),
+        "alerts": alerts,
+        "entries": entry_data,
+        "page": page_obj.number,
+        "num_pages": paginator.num_pages,
+        "total_unack": paginator.count,
     })

@@ -1,133 +1,167 @@
 // dashboard.js
 
-let weeklyChart; // keep reference so we can update instead of recreate
+let weeklyChart;
 
+// ---------------- DOM Ready ----------------
 document.addEventListener("DOMContentLoaded", () => {
-  loadEntries(); // initial load
+  loadEntries();
 
-  // Attach AJAX submission to entry form
   const form = document.querySelector("#entryForm");
   if (form) {
-    form.addEventListener("submit", e => {
-      e.preventDefault();
-      fetch("/add_entry/", {
-        method: "POST",
-        body: new FormData(form)
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) {
-          addRowToTable(data.entry);
-          updateGraph(); // reload graph data
-          form.reset();
-        } else {
-          alert("Error: " + JSON.stringify(data.errors));
-        }
-      });
-    });
+    form.addEventListener("submit", handleEntrySubmit);
   }
 });
 
-// Fetch entries JSON and render table + graph
-function loadEntries() {
-  fetch("/daily_entries/api/entries/")   // ✅ corrected path
-    .then(res => res.json())
-    .then(entries => {
-      console.log("Fetched entries:", entries); // debug
-      renderTable(entries);
-      renderWeeklyGraph(
-        entries.map(e => e.date).reverse(),
-        entries.map(e => e.oxygen_purity).reverse(),
-        entries.map(e => e.pressure).reverse(),
-        entries.map(e => e.flow_rate).reverse(),
-        entries.map(e => e.pdp).reverse()
-      );
-    })
-    .catch(err => console.error("Error loading entries:", err));
-}
+// ---------------- Submit Entry ----------------
+async function handleEntrySubmit(event) {
+  event.preventDefault();
 
-// Render table dynamically
-function renderTable(entries) {
-  const tbody = document.querySelector("#entriesTableBody");
-  if (!tbody) return;
-  tbody.innerHTML = "";
+  const form = event.currentTarget;
 
-  entries.sort((a, b) => {
-    const dateA = new Date(`${a.date} ${a.time}`);
-    const dateB = new Date(`${b.date} ${b.time}`);
-    return dateB - dateA; // newest first
-  });
-
-  entries.forEach(e => {
-    const row = document.createElement("tr");
-    row.className = "hover:bg-gray-50";
-    row.innerHTML = `
-      <td class="px-4 py-2">${e.date}</td>
-      <td class="px-4 py-2">${e.time}</td>
-      <td class="px-4 py-2">${e.operator}</td>
-      <td class="px-4 py-2">${e.oxygen_purity}</td>
-      <td class="px-4 py-2">${e.pressure}</td>
-      <td class="px-4 py-2">${e.flow_rate}</td>
-      <td class="px-4 py-2">${e.pdp}</td>
-    `;
-    tbody.appendChild(row);
-  });
-}
-
-
-// Updated renderWeeklyGraph with persistent chart
-function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
-  const ctx = document.getElementById('weeklyGraph').getContext('2d');
-  if (weeklyChart) {
-    weeklyChart.data.labels = labels;
-    weeklyChart.data.datasets[0].data = purityData;
-    weeklyChart.data.datasets[1].data = pressureData;
-    weeklyChart.data.datasets[2].data = flowRateData;
-    weeklyChart.data.datasets[3].data = pdpData;
-    weeklyChart.update();
-  } else {
-    weeklyChart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'Purity (%)', data: purityData, borderColor: 'blue', fill: false },
-          { label: 'Pressure (bar)', data: pressureData, borderColor: 'red', fill: false },
-          { label: 'Flow Rate (L/min)', data: flowRateData, borderColor: 'green', fill: false },
-          { label: 'PDP (°C)', data: pdpData, borderColor: 'orange', fill: false }
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: { position: 'bottom' },
-          title: { display: true, text: 'Weekly Oxygen Monitoring Trends' }
-        }
-      }
+  try {
+    const response = await fetch("/add_entry/", {
+      method: "POST",
+      body: new FormData(form)
     });
+
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      alert("Error: " + JSON.stringify(data.errors ?? "Unable to save entry."));
+      return;
+    }
+
+    // Reload the table and graph from the server to keep them in sync.
+    await loadEntries();
+    form.reset();
+  } catch (error) {
+    console.error("Error submitting entry:", error);
+    alert("Could not submit the entry. Please try again.");
   }
 }
 
-// Reload graph after new entry
-function updateGraph() {
-  loadEntries();
+// ---------------- Fetch Entries ----------------
+async function loadEntries() {
+  try {
+    const response = await fetch("/daily_entries/api/entries/");
+
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
+    }
+
+    const entries = await response.json();
+
+    if (!Array.isArray(entries)) {
+      throw new Error("The entries API did not return an array.");
+    }
+
+    renderTable(entries);
+
+    // Sort a copy chronologically for the graph; don't mutate the original.
+    const chronologicalEntries = [...entries].sort(
+      (a, b) => getEntryTimestamp(a) - getEntryTimestamp(b)
+    );
+
+    renderWeeklyGraph(
+      chronologicalEntries.map(entry => entry.date ?? ""),
+      chronologicalEntries.map(entry => entry.oxygen_purity ?? null),
+      chronologicalEntries.map(entry => entry.pressure ?? null),
+      chronologicalEntries.map(entry => entry.flow_rate ?? null),
+      chronologicalEntries.map(entry => entry.pdp ?? null)
+    );
+  } catch (error) {
+    console.error("Error loading entries:", error);
+  }
 }
 
-// Add a single new row (after AJAX form submit)
+function getEntryTimestamp(entry) {
+  const timestamp = new Date(`${entry.date ?? ""}T${entry.time ?? "00:00:00"}`).getTime();
+  return Number.isNaN(timestamp) ? 0 : timestamp;
+}
+
+// ---------------- Render Table ----------------
+function renderTable(entries) {
+  const tbody = document.querySelector("#entriesTableBody");
+  if (!tbody) return;
+
+  tbody.replaceChildren();
+
+  const newestFirst = [...entries].sort(
+    (a, b) => getEntryTimestamp(b) - getEntryTimestamp(a)
+  );
+
+  newestFirst.forEach(entry => {
+    tbody.appendChild(createEntryRow(entry));
+  });
+}
+
+function createEntryRow(entry) {
+  const row = document.createElement("tr");
+  row.className = "hover:bg-gray-50";
+
+  [
+    entry.date,
+    entry.time,
+    entry.operator,
+    entry.oxygen_purity,
+    entry.pressure,
+    entry.flow_rate,
+    entry.pdp
+  ].forEach(value => {
+    const cell = document.createElement("td");
+    cell.className = "px-4 py-2";
+    cell.textContent = value == null ? "" : String(value);
+    row.appendChild(cell);
+  });
+
+  return row;
+}
+
+// ---------------- Render / Update Graph ----------------
+function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpData) {
+  const canvas = document.getElementById("weeklyGraph");
+  if (!canvas || typeof Chart === "undefined") return;
+
+  const datasets = [
+    { label: "Purity (%)", data: purityData, borderColor: "blue", fill: false },
+    { label: "Pressure (bar)", data: pressureData, borderColor: "red", fill: false },
+    { label: "Flow Rate (L/min)", data: flowRateData, borderColor: "green", fill: false },
+    { label: "PDP (°C)", data: pdpData, borderColor: "orange", fill: false }
+  ];
+
+  if (weeklyChart) {
+    weeklyChart.data.labels = labels;
+    weeklyChart.data.datasets.forEach((dataset, index) => {
+      dataset.data = datasets[index].data;
+    });
+    weeklyChart.update();
+    return;
+  }
+
+  weeklyChart = new Chart(canvas.getContext("2d"), {
+    type: "line",
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" },
+        title: {
+          display: true,
+          text: "Weekly Oxygen Monitoring Trends"
+        }
+      }
+    }
+  });
+}
+
+// ---------------- Add a Row ----------------
 function addRowToTable(entry) {
   const tbody = document.querySelector("#entriesTableBody");
   if (!tbody) return;
-  const row = document.createElement("tr");
-  row.className = "hover:bg-gray-50";
-  row.innerHTML = `
-    <td class="px-4 py-2">${entry.date}</td>
-    <td class="px-4 py-2">${entry.time}</td>
-    <td class="px-4 py-2">${entry.operator}</td>
-    <td class="px-4 py-2">${entry.oxygen_purity}</td>
-    <td class="px-4 py-2">${entry.pressure}</td>
-    <td class="px-4 py-2">${entry.flow_rate}</td>
-    <td class="px-4 py-2">${entry.pdp}</td>
-  `;
-  tbody.prepend(row); // newest entry on top
-}
 
+  tbody.prepend(createEntryRow(entry));
+}
