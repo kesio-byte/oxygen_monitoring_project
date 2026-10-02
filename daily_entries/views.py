@@ -13,7 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
-from alerts.utils import send_alert_email
+from .email_utils import send_alert_email
 from .forms import DailyEntryForm, CustomUserCreationForm
 from .models import DailyEntry
 

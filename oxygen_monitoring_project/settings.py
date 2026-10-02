@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'daily_entries',
     'weekly_records',
-    'alerts',
+   # 'alerts',
    # 'users',
     'core',
     "widget_tweaks",
