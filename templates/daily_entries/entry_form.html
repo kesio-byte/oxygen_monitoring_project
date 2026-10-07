@@ -14,6 +14,8 @@
         <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
         </svg>
+
+        <!-- Display the username of the logged-in user -->
         Logged in as: <span class="text-blue-600 font-semibold">{{ request.user.username }}</span>
       </span>
       <span class="text-gray-300">|</span>
@@ -45,6 +47,7 @@
         Oxygen Purity (%)
       </label>
       <div class="col-span-1 md:col-span-2">
+        
         {% if form.oxygen_purity.errors %}
           {{ form.oxygen_purity|add_class:"w-full rounded border-2 border-red-500 bg-red-50/30 px-3 py-2 focus:ring-red-500 focus:border-red-500" }}
         {% else %}
@@ -57,6 +60,7 @@
           </div>
         {% endif %}
 
+         <!-- Display errors for Oxygen Purity if any -->
         {% for error in form.oxygen_purity.errors %}
           <p class="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">⚠️ {{ error }}</p>
         {% endfor %}
@@ -80,7 +84,11 @@
             <span class="font-semibold">Note:</span> {{ form.pressure.help_text }}
           </div>
         {% endif %}
-
+        
+        <!-- Display errors for Pressure if any -->
+        {% for error in form.pressure.errors %}
+          <p class="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">⚠️ {{ error }}</p>
+        {% endfor %}
         {% for error in form.pressure.errors %}
           <p class="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">⚠️ {{ error }}</p>
         {% endfor %}
@@ -93,6 +101,8 @@
         Flow Rate (L/min)
       </label>
       <div class="col-span-1 md:col-span-2">
+
+        <!-- Display the Flow Rate input field with appropriate styling based on validation errors -->
         {% if form.flow_rate.errors %}
           {{ form.flow_rate|add_class:"w-full rounded border-2 border-red-500 bg-red-50/30 px-3 py-2 focus:ring-red-500 focus:border-red-500" }}
         {% else %}
@@ -104,7 +114,19 @@
             <span class="font-semibold">Note:</span> {{ form.flow_rate.help_text }}
           </div>
         {% endif %}
+        {% if form.flow_rate.errors %}
+          {{ form.flow_rate|add_class:"w-full rounded border-2 border-red-500 bg-red-50/30 px-3 py-2 focus:ring-red-500 focus:border-red-500" }}
+        {% else %}
+          {{ form.flow_rate|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" }}
+        {% endif %}
 
+        {% if form.flow_rate.help_text %}
+          <div class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 flex items-start gap-1.5">
+            <span class="font-semibold">Note:</span> {{ form.flow_rate.help_text }}
+          </div>
+        {% endif %}
+        
+        <!--- Display errors for Flow Rate if any -->
         {% for error in form.flow_rate.errors %}
           <p class="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">⚠️ {{ error }}</p>
         {% endfor %}
@@ -122,13 +144,18 @@
         {% else %}
           {{ form.pdp|add_class:"w-full rounded border-gray-300 px-3 py-2 focus:ring-blue-500 focus:border-blue-500" }}
         {% endif %}
-
+        
+        <!-- Display help text for PDP if available -->
         {% if form.pdp.help_text %}
           <div class="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 flex items-start gap-1.5">
             <span class="font-semibold">Note:</span> {{ form.pdp.help_text }}
           </div>
         {% endif %}
-
+         
+        <!-- Display errors for PDP if any -->
+        {% for error in form.pdp.errors %}
+          <p class="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">⚠️ {{ error }}</p>
+        {% endfor %}
         {% for error in form.pdp.errors %}
           <p class="text-red-600 text-xs font-semibold mt-1.5 flex items-center gap-1">⚠️ {{ error }}</p>
         {% endfor %}
@@ -165,6 +192,7 @@
     <!-- Footer -->
     <div class="pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
       
+      <!-- System Operational Status -->
       <span class="inline-flex items-center gap-1 text-emerald-600 font-medium">
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span> System Operational
       </span>

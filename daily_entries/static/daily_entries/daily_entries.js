@@ -1,4 +1,4 @@
-// dashboard.js
+// -------------- dashboard.js --------------
 
 let weeklyChart;
 
@@ -23,13 +23,15 @@ async function handleEntrySubmit(event) {
       method: "POST",
       body: new FormData(form)
     });
-
+  
+    // Check if the response is not OK (status code outside 200-299)
     if (!response.ok) {
       throw new Error(`Request failed (${response.status})`);
     }
 
     const data = await response.json();
-
+    
+    // Check if the submission was successful
     if (!data.success) {
       alert("Error: " + JSON.stringify(data.errors ?? "Unable to save entry."));
       return;
@@ -48,7 +50,8 @@ async function handleEntrySubmit(event) {
 async function loadEntries() {
   try {
     const response = await fetch("/daily_entries/api/entries/");
-
+    
+    // Check if the response is not OK (status code outside 200-299)
     if (!response.ok) {
       throw new Error(`Request failed (${response.status})`);
     }
@@ -65,7 +68,8 @@ async function loadEntries() {
     const chronologicalEntries = [...entries].sort(
       (a, b) => getEntryTimestamp(a) - getEntryTimestamp(b)
     );
-
+  
+    // Render the weekly graph with the sorted entries
     renderWeeklyGraph(
       chronologicalEntries.map(entry => entry.date ?? ""),
       chronologicalEntries.map(entry => entry.oxygen_purity ?? null),
@@ -77,7 +81,7 @@ async function loadEntries() {
     console.error("Error loading entries:", error);
   }
 }
-
+//----------------- Render Table ----------------
 function getEntryTimestamp(entry) {
   const timestamp = new Date(`${entry.date ?? ""}T${entry.time ?? "00:00:00"}`).getTime();
   return Number.isNaN(timestamp) ? 0 : timestamp;
@@ -99,6 +103,7 @@ function renderTable(entries) {
   });
 }
 
+//---------------- Create Entry Row ----------------
 function createEntryRow(entry) {
   const row = document.createElement("tr");
   row.className = "hover:bg-gray-50";
@@ -118,6 +123,7 @@ function createEntryRow(entry) {
     row.appendChild(cell);
   });
 
+// return the created row so it can be appended to the table body
   return row;
 }
 
@@ -133,6 +139,7 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
     { label: "PDP (°C)", data: pdpData, borderColor: "orange", fill: false }
   ];
 
+   // If the chart already exists, update its data and re-render it
   if (weeklyChart) {
     weeklyChart.data.labels = labels;
     weeklyChart.data.datasets.forEach((dataset, index) => {
@@ -142,6 +149,7 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
     return;
   }
 
+// Create a new chart if it doesn't exist
   weeklyChart = new Chart(canvas.getContext("2d"), {
     type: "line",
     data: { labels, datasets },

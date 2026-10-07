@@ -1,4 +1,6 @@
-from datetime import timedelta
+# My daily_entries/views.py
+
+import datetime
 import json
 import os
 
@@ -20,22 +22,26 @@ from django.contrib.auth.views import LogoutView
 
 
 # -------------------------
-# Access control
+# Access control functions
 # -------------------------
 def operator_required(view_func):
-    """Require the user to be logged in and belong to the Operator group."""
+    """Require the user to be logged in and belong to the Operator or Admin group."""
     @login_required
     def wrapped(request, *args, **kwargs):
-        if not request.user.groups.filter(name="Operator").exists():
-            messages.error(request, "Only Operators can submit daily entries.")
+        allowed = request.user.groups.filter(
+            name__in=["Operator", "Admin"]
+        ).exists()
+
+        if not allowed:
+            messages.error(request, "Only Operators or Admins can submit daily entries.")
             return redirect("home")
+
         return view_func(request, *args, **kwargs)
 
     return wrapped
 
-
 # -------------------------
-# Home Page
+# Home Page function
 # -------------------------
 @login_required
 def home(request):
@@ -43,58 +49,69 @@ def home(request):
 
 
 # -------------------------
-# User List (Admins only)
+# User List (Admins only) function
 # -------------------------
 @login_required
 def users_list(request):
+
+    # Check if the user is an Admin
     if not request.user.groups.filter(name="Admin").exists():
         messages.error(request, "Only Admins can view the user list.")
         return redirect("home")
 
     query = request.GET.get("q")
     users = User.objects.all().prefetch_related("groups")
-
+    # Filter users based on the search query if provided
     if query:
         users = users.filter(
             Q(username__icontains=query) | Q(email__icontains=query)
         )
-
+    
+     # Render the users list temp with the filtered users
     return render(request, "daily_entries/users.html", {"users": users})
 
 
 # -------------------------
-# Register New User (Admins only)
+# Register New User (Admins only) function
 # -------------------------
 @login_required
 def register(request):
+
+    # Check if the user is an Admin
     if not request.user.groups.filter(name="Admin").exists():
         messages.error(request, "Only Admins can create new accounts.")
         return redirect("users_list")
 
+    # Handle the form submission for registering a new user
     if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             form.save()
             messages.success(request, "Account created successfully.")
-            return redirect("users_list")
+    
+    # return redirect("users_list")
     else:
         form = CustomUserCreationForm()
-
+    
+    # Render the registration form template with the form instance
     return render(request, "daily_entries/register.html", {"form": form})
 
 
 # -------------------------
-# Manage Roles (Admins only)
+# Manage Roles (Admins only) function
 # -------------------------
 @login_required
 def manage_roles(request, user_id):
+
+    # Check if the user is an Admin
     if not request.user.groups.filter(name="Admin").exists():
         messages.error(request, "Only Admins can manage roles.")
         return redirect("users_list")
 
     user = get_object_or_404(User, id=user_id)
     groups = Group.objects.all()
-
+    
+    # Handle the form submission for managing user roles
     if request.method == "POST":
         selected_roles = request.POST.getlist("roles")
         selected_groups = Group.objects.filter(id__in=selected_roles)
@@ -107,7 +124,8 @@ def manage_roles(request, user_id):
         user.groups.set(selected_groups)
         messages.success(request, f"Roles updated for {user.username}.")
         return redirect("users_list")
-
+    
+    # Render the manage roles template with the user and groups context
     return render(
         request,
         "daily_entries/manage_roles.html",
@@ -120,13 +138,15 @@ def manage_roles(request, user_id):
 
 
 # -------------------------
-# Daily Entries
+# Daily Entries function
 # -------------------------
 @operator_required
 def add_entry(request):
+    # Handle the form submission for adding a new daily entry
     if request.method == "POST":
         form = DailyEntryForm(request.POST)
-
+        
+        # Validate the form and save the entry if valid
         if form.is_valid():
             entry = form.save(commit=False)
             entry.operator = request.user
@@ -136,19 +156,26 @@ def add_entry(request):
             entry.time = now.time().replace(second=0, microsecond=0)
 
             entry.save()
-
+            
+            # Check for critical conditions and send alert emails if necessary
             if entry.oxygen_purity < 90:
                 send_alert_email(
                     f"Oxygen purity critically low ({entry.oxygen_purity:.1f}%)"
                 )
+
+            # Check for critical conditions and send alert emails if necessary
             elif entry.pressure < 4.0:
                 send_alert_email(
                     f"Pressure critically low ({entry.pressure:.1f} bar)"
                 )
+                
+            # Check for critical conditions and send alert emails if necessary
             elif entry.flow_rate < 3.0:
                 send_alert_email(
                     f"Flow rate critically low ({entry.flow_rate:.1f} L/min)"
                 )
+                
+            # Check for critical conditions and send alert emails if necessary
             elif entry.pdp > -50.0:
                 send_alert_email(
                     f"PDP critically high ({entry.pdp:.1f} °C)"
@@ -172,20 +199,21 @@ def add_entry(request):
 
 
 # -------------------------
-# Weekly Dashboard
+# Weekly Dashboard  function
 # -------------------------
 @login_required
 def weekly_dashboard(request):
     today = timezone.now().date()
-    week_start = today - timedelta(days=30)
+    week_start = today - datetime.timedelta(days=30)
 
     entries_qs = DailyEntry.objects.filter(
-        date__gte=week_start
+        date__gte=week_start # Filter entries from the last 30 days
     ).order_by("-date", "-time")
 
     paginator = Paginator(entries_qs, 10)
     entries = paginator.get_page(request.GET.get("page"))
 
+    # Calculate averages for the last 30 days
     aggregates = entries_qs.aggregate(
         avg_purity=Avg("oxygen_purity"),
         avg_pressure=Avg("pressure"),
@@ -199,12 +227,12 @@ def weekly_dashboard(request):
     avg_pdp = aggregates["avg_pdp"]
 
     alerts = []
-
+    # Check for any averages that are below safe thresholds and add alerts
     if avg_purity is not None and avg_purity < 93.0:
         alerts.append(
             f"Oxygen purity averaged {avg_purity:.1f}% — below safe threshold."
         )
-
+    # Check for any averages that are below safe thresholds and add alerts
     if avg_pressure is not None and avg_pressure < 4.5:
         alerts.append(
             f"Pressure averaged {avg_pressure:.1f} bar — below safe threshold."
@@ -241,9 +269,10 @@ def weekly_dashboard(request):
 
 
 # -------------------------
-# APIs
+# APIs functions
 # -------------------------
 def entries_api(request):
+    # Return the latest 50 entries as JSON
     entries = DailyEntry.objects.order_by("-date", "-time").values(
         "id",
         "date",
@@ -254,12 +283,17 @@ def entries_api(request):
         "flow_rate",
         "pdp",
     )
+
+    # Return the entries as a JSON response
     return JsonResponse(list(entries), safe=False)
 
-
+# -------------------------
+# Monthly_api function
+# -------------------------
 def monthly_api(request):
     today = timezone.now().date()
-    month_start = today - timedelta(days=30)
+    # Get the date 30 days ago from today
+    month_start = today - datetime.timedelta(days=30)
 
     entries = (
         DailyEntry.objects.filter(date__gte=month_start)
@@ -276,12 +310,16 @@ def monthly_api(request):
             "flow_rate": float(entry.flow_rate),
             "pdp": float(entry.pdp),
         }
+
+        # for every entry in the queryset, create a dictionary with the relevant data
         for entry in entries
     ]
 
     return JsonResponse(data, safe=False)
 
-
+# -------------------------
+# Alerts API functions
+# -------------------------
 def all_alerts_api(request):
     alerts = (
         DailyEntry.objects.select_related("operator")
@@ -303,12 +341,17 @@ def all_alerts_api(request):
             "notes": entry.notes or "",
             "technician_ack": entry.technician_ack,
         }
+
+        # for every entry in the queryset, create a dictionary with the relevant data
         for entry in alerts
     ]
 
+    # Return the alerts as a JSON response
     return JsonResponse(data, safe=False)
 
-
+# -------------------------
+# Live_monitoring  function
+# -------------------------
 def live_monitoring_api(request):
     latest = (
         DailyEntry.objects.select_related("operator")
@@ -316,12 +359,14 @@ def live_monitoring_api(request):
         .first()
     )
 
+    # if there are no entries, return a 404 response
     if not latest:
         return JsonResponse({"error": "No entries found"}, status=404)
 
     critical_flag = False
     alert_message = None
 
+    # Check for critical conditions and set the alert message accordingly
     if latest.oxygen_purity < 90:
         alert_message = (
             f"Oxygen purity critically low ({latest.oxygen_purity:.1f}%)"
@@ -365,14 +410,15 @@ def live_monitoring_api(request):
 
 
 # -------------------------
-# Alerts
+# Alerts functions
 # -------------------------
 @require_POST
 def update_ack(request, entry_id):
+    # Check if the user is authenticated
     if not request.user.is_authenticated:
         messages.error(request, "You must be logged in to acknowledge alerts.")
         return redirect("login")
-
+    
     entry = get_object_or_404(DailyEntry, id=entry_id)
     entry.technician_ack = request.POST.get("ack") == "true"
     entry.save(update_fields=["technician_ack"])
@@ -383,7 +429,9 @@ def update_ack(request, entry_id):
     )
     return redirect("alerts_page")
 
-
+# -------------------------
+# Uncknowledged alerts function
+# -------------------------
 def unacknowledged_alerts(request):
     alerts = DailyEntry.objects.filter(
         technician_ack=False
@@ -395,7 +443,9 @@ def unacknowledged_alerts(request):
         {"alerts": alerts},
     )
 
-
+# -------------------------
+# Alerts_pg function
+# -------------------------
 @login_required
 def alerts_page(request):
     alert_history_qs = DailyEntry.objects.order_by("-date", "-time")
@@ -420,7 +470,9 @@ def alerts_page(request):
         },
     )
 
-
+# -------------------------
+# Alerts_ack  function
+# -------------------------
 @login_required
 @permission_required("daily_entries.change_dailyentry", raise_exception=True)
 @require_POST
@@ -429,6 +481,7 @@ def alerts_ack(request, pk):
     entry.technician_ack = request.POST.get("ack") == "true"
     entry.save(update_fields=["technician_ack"])
 
+    # Return a JSON response indicating the success of the acknowledgment update
     return JsonResponse(
         {
             "success": True,
@@ -438,7 +491,7 @@ def alerts_ack(request, pk):
 
 
 # -------------------------
-# Other entry views
+# Other entry views functions
 # -------------------------
 def daily_entries_list(request):
     entries = DailyEntry.objects.all().order_by("-date", "-time")
@@ -446,11 +499,12 @@ def daily_entries_list(request):
 
 
 # -------------------------
-# Delete User (Admins only)
+# Delet User (Admins only) function
 # -------------------------
 @require_POST
 @login_required
 def delete_user(request):
+    # Check if the user is an Admin
     if not request.user.groups.filter(name="Admin").exists():
         messages.error(request, "Only Admins can delete users.")
         return redirect("users_list")
@@ -458,20 +512,26 @@ def delete_user(request):
     user_id = request.POST.get("user_id")
     user = get_object_or_404(User, id=user_id)
 
+    # Prevent an Admin from deleting their own account.
     if user == request.user:
         messages.error(request, "You cannot delete your own account.")
     else:
         username = user.username
         user.delete()
         messages.success(request, f"User '{username}' deleted successfully.")
-
+    # redirect to the user list page after deletion
     return redirect("users_list")
 
+# -------------------------
+# Alerts_api  function
+# -------------------------
 def alerts_api(request):
     entries = DailyEntry.objects.order_by("-date", "-time")
     latest = entries.first()
 
     alert_messages = []
+
+    # if there is a latest entry, check for critical conditions and generate alert messages
     if latest:
         if latest.oxygen_purity < 90:
             alert_messages.append(
@@ -523,6 +583,7 @@ def alerts_api(request):
         for entry in page_obj
     ]
 
+    # Please Return the JSON response
     return JsonResponse({
         "alerts": alerts,
         "entries": entry_data,
@@ -530,12 +591,13 @@ def alerts_api(request):
         "num_pages": paginator.num_pages,
         "total_unack": paginator.count,
     })
-
-
-
+# -------------------------
+# CustomLogoutView function 
+# -------------------------
 class CustomLogoutView(LogoutView):
     next_page = "login"
     http_method_names = ["get", "post", "head", "options"]
 
+    #function to handle GET requests by calling the pst method
     def get(self, request, *args, **kwargs):
         return super().post(request, *args, **kwargs)

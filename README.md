@@ -123,7 +123,6 @@ The application provides endpoints for retrieving entries, monthly data, alerts,
 * `.env`: Local environment configuration. It should not contain credentials in a public submission.
 * `db.sqlite3`: SQLite database used for local development.
 * `templates/`: Contains shared and application-specific HTML templates.
-* `staticfiles/`: Collected static assets.
 
 ### Project Configuration (`oxygen_monitoring_project/`)
 

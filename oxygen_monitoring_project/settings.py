@@ -24,10 +24,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'daily_entries',
-    #'weekly_records',
-   # 'alerts',
-   # 'users',
-    #'core',
     "widget_tweaks",
 ]
 
@@ -89,9 +85,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # 🔹 Authentication redirects
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "weekly_records"   # or "weekly_records"
+LOGIN_REDIRECT_URL = "weekly_dashboard"   # or "weekly_records"
 LOGOUT_REDIRECT_URL = "login"
-
 
 load_dotenv()
 

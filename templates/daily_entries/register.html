@@ -45,11 +45,13 @@
                         <div class="relative">
                             {{ field }}
                         </div>
-
+                        
+                        <!-- Help Text -->
                         {% if field.help_text %}
                             <p class="mt-1.5 text-xs text-slate-500">{{ field.help_text|safe }}</p>
                         {% endif %}
-
+                        
+                        <!-- Display errors for each field if any -->
                         {% for error in field.errors %}
                             <p class="mt-1.5 text-sm font-medium text-rose-600">{{ error }}</p>
                         {% endfor %}

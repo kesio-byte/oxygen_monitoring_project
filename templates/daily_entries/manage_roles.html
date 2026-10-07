@@ -5,6 +5,7 @@
 {% block content %}
 {% if is_admin %}
 <div class="max-w-2xl mx-auto space-y-6">
+    
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-gray-200 pb-4">
         <div>
@@ -28,7 +29,8 @@
                 <label class="block text-sm font-semibold text-gray-800 mb-3">
                     Available Roles
                 </label>
-
+                
+                <!-- Warning if user has no roles -->
                 {% if user.groups.count == 0 %}
                     <div class="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-800 border border-amber-200">
                         ⚠️ This user currently has no roles assigned.
@@ -36,6 +38,7 @@
                 {% endif %}
 
                 <div class="space-y-3">
+                    <!-- Loop through all available groups and display checkboxes -->
                     {% for group in groups %}
                         <label class="flex items-center space-x-3 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition cursor-pointer">
                             <input
@@ -60,7 +63,8 @@
                                 {% endif %}">
                                 {{ group.name }}
                             </span>
-
+                            
+                            <!-- Self-removal protection messge -->
                             {% if user == request.user and group.name == "Admin" %}
                                 <span class="text-xs text-gray-400 italic">
                                     (Self-removal protected)
@@ -98,6 +102,8 @@
     </div>
 </div>
 {% else %}
+
+<!-- Access Denied Message for Non-Admins no  go area -->
 <div class="max-w-md mx-auto my-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
     <div class="text-red-500 text-3xl mb-2">⛔</div>
     <h2 class="text-lg font-bold text-red-800 mb-1">Access Restricted</h2>

@@ -29,7 +29,8 @@
             class="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200">
       All Alerts
     </button>
-
+    
+    <!--pls checks whether the current user has permission to change DailyEntry records.-->
     {% if perms.daily_entries.change_dailyentry %}
       <button onclick="showTab('unack')"
               id="tab-btn-unack"
@@ -85,7 +86,8 @@
               <th class="px-4 py-3 text-center">Ack</th>
             </tr>
           </thead>
-
+          
+          <!-- The alert historie rows -->
           <tbody class="divide-y divide-gray-200 bg-white">
             {% for entry in alert_history %}
               <tr class="{% if entry.critical_flag %}bg-red-50/50{% elif entry.alert_status %}bg-yellow-50/50{% else %}bg-white{% endif %} hover:bg-gray-50 transition-colors">
@@ -122,7 +124,11 @@
                 </td>
 
                 <td class="px-4 py-3 whitespace-nowrap text-center">
+
+                  <!--Show this section only if the user can change daily entries. -->
                   {% if perms.daily_entries.change_dailyentry %}
+
+                     <!--Pls continue only if the entry is critical or has an alert status-->
                     {% if entry.critical_flag or entry.alert_status %}
                       <input type="checkbox"
                              class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
@@ -151,19 +157,23 @@
         </table>
       </div>
 
-      <!-- All Alerts Pagination -->
-      {% if alert_history.paginator.num_pages > 1 %}
-        <div class="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
-          <span class="text-xs text-gray-600">
-            Page {{ alert_history.number }} of {{ alert_history.paginator.num_pages }}
-          </span>
-          <div class="inline-flex space-x-1 text-xs">
-            {% if alert_history.has_previous %}
-              <a href="?tab=all&page_all=1#tab-all"
-                 class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">First</a>
-              <a href="?tab=all&page_all={{ alert_history.previous_page_number }}#tab-all"
-                 class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Prev</a>
+        <!-- All Alerts Pagination nice feature-->
+        {% if alert_history.paginator.num_pages > 1 %}
+          <div class="px-4 py-3 border-t border-gray-200 bg-gray-50 flex items-center justify-between">
+            <span class="text-xs text-gray-600">
+              Page {{ alert_history.number }} of {{ alert_history.paginator.num_pages }}
+            </span>
+            <div class="inline-flex space-x-1 text-xs">
+
+              <!--If alert_history has a previous page renders the template content betwen the if and endif tags. -->
+              {% if alert_history.has_previous %}
+                <a href="?tab=all&page_all=1#tab-all"
+                  class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">First</a>
+                <a href="?tab=all&page_all={{ alert_history.previous_page_number }}#tab-all"
+                  class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Prev</a>
             {% endif %}
+
+            <!--Pls check whether alert_history has another page. -->
             {% if alert_history.has_next %}
               <a href="?tab=all&page_all={{ alert_history.next_page_number }}#tab-all"
                  class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Next</a>
@@ -202,6 +212,8 @@
           </thead>
 
           <tbody class="divide-y divide-gray-200 bg-white">
+
+            <!-- Unacknowledged alert rows -->
             {% for entry in alerts %}
               <tr id="unack-row-{{ entry.pk }}" class="hover:bg-red-50/30 transition-colors">
                 <td class="px-4 py-3 whitespace-nowrap font-medium text-gray-900">
@@ -219,6 +231,8 @@
                   {{ entry.notes|default:"—" }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap text-center">
+                  
+                  <!-- If the user has that permission, Djago renders the contents between the if and endif tags. -->
                   {% if perms.daily_entries.change_dailyentry %}
                     <input type="checkbox"
                            class="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
@@ -232,7 +246,7 @@
             {% empty %}
               <tr>
                 <td colspan="9" class="px-4 py-8 text-center text-gray-500 text-sm">
-                  🎉 Great job! No unacknowledged critical or warning alerts pending.
+                   Great job! No unacknowledged critical or warning alerts pending.
                 </td>
               </tr>
             {% endfor %}
@@ -270,6 +284,8 @@
 <script>
   window.csrfToken = "{{ csrf_token }}";
 </script>
+
+<!-- The js urls alert.js and dashboard.js -->
 <script src="{% static 'daily_entries/alerts.js' %}"></script>
 <script src="{% static 'daily_entries/dashboard.js' %}"></script>
 {% endblock %}

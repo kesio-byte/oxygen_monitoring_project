@@ -35,7 +35,7 @@
     </div>
   </div>
 
-  <!-- Critical Alerts Banner -->
+  <!-- Critical Alerts Baner -->
   {% if alerts %}
   <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-8 rounded-r-lg shadow-sm">
     <div class="flex items-center mb-2">
@@ -132,11 +132,14 @@
       </span>
 
       <div class="inline-flex space-x-1">
+
+        <!-- Check if the paginated entries object has a page before the current one. -->
         {% if entries.has_previous %}
           <a href="?page=1#entries" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">First</a>
           <a href="?page={{ entries.previous_page_number }}#entries" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Prev</a>
         {% endif %}
-
+ 
+      
         {% if entries.has_next %}
           <a href="?page={{ entries.next_page_number }}#entries" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Next</a>
           <a href="?page={{ entries.paginator.num_pages }}#entries" class="px-2.5 py-1.5 bg-white border border-gray-300 rounded text-gray-700 hover:bg-gray-100">Last</a>

@@ -1,18 +1,25 @@
+# ----- My  Daily entries models.py file ------
+
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 
 
+# ------- class Technician model -------
 class Technician(models.Model):
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=20, blank=True)
 
+    # Define the string representation of the Tech model
     def __str__(self):
         return self.name
 
 
+# ------- class DailyEntry model -------
 class DailyEntry(models.Model):
+
+    # Define the fields for the DailyEntry model
     operator = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -34,10 +41,12 @@ class DailyEntry(models.Model):
     critical_flag = models.BooleanField(default=False)
     technician_ack = models.BooleanField(default=False)
 
+    # Define the str representation of the DailyEntry model
     def __str__(self):
         operator_name = self.operator.username if self.operator_id else "No Operator"
         return f"{self.date} - {operator_name}"
 
+    # Validate values to help ensure data integrity
     def clean(self):
         errors = {}
 
@@ -53,25 +62,36 @@ class DailyEntry(models.Model):
         if errors:
             raise ValidationError(errors)
 
+    # Override save to set missing date/time values, calculate flags,
+    # validate the instance, and then save it to the database.
     def save(self, *args, **kwargs):
         now = timezone.localtime(timezone.now())
 
+        # Set date and time to the current local values if they are missing.
         if not self.date:
             self.date = now.date()
+
         if not self.time:
             self.time = now.time().replace(second=0, microsecond=0)
 
-        self.full_clean()
-
+        # Set alert status based on the configured operating thresholds.
         self.alert_status = (
             self.oxygen_purity < 93.0
-            or self.pressure < 5.0  # replace with your actual threshold
-            or self.flow_rate < 0   # replace with your actual threshold
+            or self.pressure < 5.0
+            or self.flow_rate < 0
             or self.pdp > -55.0
         )
+
+        # Mark the entry critical when both conditions are mt.
         self.critical_flag = (
             self.oxygen_purity < 93.0
             and self.pdp > -55.0
         )
 
+        # Run model and field validation before saving.
+        self.full_clean()
+
+        # Save the instance to the database.
         super().save(*args, **kwargs)
+
+# End of models.py

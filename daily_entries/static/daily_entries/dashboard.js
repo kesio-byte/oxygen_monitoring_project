@@ -1,4 +1,4 @@
-// dashboard.js
+// -----------------dashboard.js -----------------
 
 let weeklyChart;
 
@@ -13,27 +13,35 @@ async function fetchJson(url) {
   return response.json();
 }
 
+//----------------- Set Text Helper ----------------
 function setText(element, value) {
   element.textContent = value == null ? "" : String(value);
 }
 
+//----------------- Get Entry Timestamp ----------------
 function getEntryTimestamp(entry) {
   const timestamp = new Date(
+
+    // Combine date and time into a single string
     `${entry.date ?? ""}T${entry.time ?? "00:00:00"}`
   ).getTime();
-
+  
+  // Return 0 if the timestamp is NaN (invalid date)
   return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
 // ---------------- Alerts ----------------
 async function loadAlerts() {
   const alertBox = document.querySelector("#alertsBox");
+
+  // If the alertBox element is not found, exit the function early
   if (!alertBox) return;
 
   try {
     const alerts = await fetchJson("/daily_entries/api/alerts/");
     alertBox.replaceChildren();
 
+    // Check if alerts is an array and has elements
     if (!Array.isArray(alerts) || alerts.length === 0) {
       const message = document.createElement("p");
       message.className = "text-gray-500";
@@ -41,10 +49,12 @@ async function loadAlerts() {
       alertBox.appendChild(message);
       return;
     }
-
+    
+    // Loop through each alert and create a styled div for it
     alerts.forEach(alert => {
       const div = document.createElement("div");
-
+      
+      // Determine the class based on the alert level
       const levelClass = alert.level === "critical"
         ? "bg-red-100 border-l-4 border-red-500 text-red-700"
         : alert.level === "warning"
@@ -67,7 +77,8 @@ async function loadLiveData() {
 
   try {
     const data = await fetchJson("/daily_entries/api/live/");
-
+    
+    // Check if data is null or contains an error property
     if (!data || data.error) {
       const message = document.createElement("p");
       message.className = "text-gray-500";
@@ -80,7 +91,8 @@ async function loadLiveData() {
     const pressure = Number.parseFloat(data.pressure);
     const flowRate = Number.parseFloat(data.flow_rate);
     const pdp = Number.parseFloat(data.pdp);
-
+    
+    // Determine classes based on thresholds
     const purityClass = Number.isFinite(purity) && purity < 90
       ? "text-red-600 font-bold"
       : "text-green-600";
@@ -110,9 +122,10 @@ async function loadLiveData() {
     table.className = "table-auto w-full text-sm text-gray-700";
 
     const tbody = document.createElement("tbody");
-
+    
+    // Define the rows with their respective labels, values, and optional classes
     const rows = [
-      ["Technician", data.operator],
+      ["Operator", data.operator],
       ["Date", data.date],
       ["Time", data.time],
       ["Oxygen Purity", `${data.oxygen_purity ?? ""}%`, purityClass],
@@ -154,17 +167,20 @@ async function loadLiveData() {
 async function loadEntries() {
   try {
     const entries = await fetchJson("/daily_entries/api/entries/");
-
+    
+    // Check if entries is an array
     if (!Array.isArray(entries)) {
       throw new Error("The entries API did not return an array.");
     }
-
+    
+    // Render the table with the fetched entries
     renderTable(entries);
 
     const chronologicalEntries = [...entries].sort(
       (a, b) => getEntryTimestamp(a) - getEntryTimestamp(b)
     );
 
+    // Render the weekly graph with the sorted entries
     renderWeeklyGraph(
       chronologicalEntries.map(entry => entry.date ?? ""),
       chronologicalEntries.map(entry => entry.oxygen_purity ?? null),
@@ -222,7 +238,8 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
     { label: "Flow Rate (L/min)", data: flowRateData, borderColor: "green", fill: false },
     { label: "PDP (°C)", data: pdpData, borderColor: "orange", fill: false }
   ];
-
+  
+  // If the chart already exists, update its dta and re-render it
   if (weeklyChart) {
     weeklyChart.data.labels = labels;
     weeklyChart.data.datasets.forEach((dataset, index) => {
@@ -232,6 +249,7 @@ function renderWeeklyGraph(labels, purityData, pressureData, flowRateData, pdpDa
     return;
   }
 
+  // Create a new chart if it doesn't exist
   weeklyChart = new Chart(canvas.getContext("2d"), {
     type: "line",
     data: { labels, datasets },
@@ -254,6 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadEntries();
   loadLiveData();
 
+  // Set intervals to refresh alerts and live data every 30 seconds
   setInterval(loadAlerts, 30000);
   setInterval(loadLiveData, 30000);
 });

@@ -8,6 +8,7 @@
             <h1 class="text-2xl font-bold tracking-tight text-gray-900">Registered Users</h1>
             <p class="mt-1 text-sm text-gray-500">View and manage user accounts and roles.</p>
         </div>
+        
         <!-- Distinct Primary Action Button -->
         <div>
             <a href="{% url 'register' %}"
@@ -37,6 +38,13 @@
                 Search
             </button>
             
+            <!-- Clear Search Button -->
+            {% if request.GET.q %}
+                <a href="{% url 'users_list' %}"
+                   class="rounded-md bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors">
+                    Clear
+                </a>
+            {% endif %}
             <a href="{% url 'users_list' %}"
                class="rounded-md border border-gray-300 bg-white px-4 py-2 text-center text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
                 Clear
@@ -59,6 +67,8 @@
                 </thead>
 
                 <tbody class="divide-y divide-gray-200 bg-white">
+
+                    <!-- Loop through users and display their details -->
                     {% for user in users %}
                     <tr class="hover:bg-gray-50 transition-colors">
                         <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">{{ user.username }}</td>
@@ -66,6 +76,8 @@
                         <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-600">{{ user.date_joined|date:"M j, Y" }}</td>
                         <td class="px-6 py-4 text-sm">
                             <div class="flex flex-wrap gap-2">
+
+                                <!-- Loop through the user's groups and display them as badges -->
                                 {% for group in user.groups.all %}
                                     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium
                                         {% if group.name == 'Admin' %}bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20
@@ -81,6 +93,8 @@
                         </td>
                         <td class="whitespace-nowrap px-6 py-4 text-sm">
                             <div class="flex items-center space-x-4">
+
+                                <!-- if user has permission to change users -->
                                 {% if perms.auth.change_user %}
                                     <a href="{% url 'manage_roles' user.id %}"
                                        class="font-semibold text-blue-600 hover:text-blue-800 transition-colors">
@@ -99,7 +113,11 @@
                                         </button>
                                     </form>
                                 {% endif %}
-
+                                
+                                <!-- if user has no permission to change or delete users -->
+                                {% if not perms.auth.change_user and not perms.auth.delete_user %}
+                                    <span class="text-gray-400">No permission</span>
+                                {% endif %}
                                 {% if not perms.auth.change_user and not perms.auth.delete_user %}
                                     <span class="text-gray-400">No permission</span>
                                 {% endif %}

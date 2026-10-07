@@ -47,14 +47,14 @@
                    class="px-3 py-2 rounded transition hover:bg-blue-700 {% if request.resolver_match.url_name == 'alerts_page' %}bg-blue-800 font-semibold{% endif %}">
                     Alerts
                 </a>
-
+                <!-- if is_admn -->
                 {% if is_admin %}
                     <a href="{% url 'users_list' %}"
                        class="px-3 py-2 rounded transition hover:bg-blue-700 {% if request.resolver_match.url_name == 'users_list' %}bg-blue-800 font-semibold{% endif %}">
                         User Management
                     </a>
                 {% endif %}
-
+                <!-- if user.is_authenticated -->
                 {% if user.is_authenticated %}
                     <form method="post" action="{% url 'logout' %}" class="inline">
                         {% csrf_token %}
